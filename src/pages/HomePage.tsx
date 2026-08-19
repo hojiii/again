@@ -12,7 +12,6 @@ import { useAdFree } from "../hooks/useAdFree";
 import { LIVE_REWARDED_AD_GROUP_ID, useRewardedAd } from "../hooks/useRewardedAd";
 import { useVisit } from "../hooks/useVisit";
 import { TOTAL_LINE_COUNT, hasUnheardTreat } from "../lib/lines";
-import { ordinal } from "../lib/visits";
 import "./HomePage.css";
 
 /** 오늘 몇 번 왔는지에 붙는 한 줄 논평이에요. */
@@ -56,6 +55,8 @@ export function HomePage() {
           {line.text}
         </p>
 
+        <p className="today-note">{todayNote(state.todayCount)}</p>
+
         <p className="touch-hint">머리 쓰다듬기 · 코 꾹 · 배 문지르기 · 발바닥 🐾</p>
 
         {isNewLine && <p className="new-badge">처음 듣는 말이에요 · 도감에 담겼어요</p>}
@@ -80,34 +81,29 @@ export function HomePage() {
         )}
       </div>
 
+      {/*
+        숫자 넷을 카드 하나에 가로로 담아요. 예전에는 카드를 넷으로 쌓았는데
+        그러면 배너가 첫 화면 밖으로 밀려나서 스크롤해야 보였어요. 놀리는 문구는
+        말풍선 아래로 옮겨서 재미는 남기고 높이만 줄였어요.
+      */}
       <section className="facts">
         <div className="fact">
           <span className="fact-label">오늘</span>
           <span className="fact-value">{state.todayCount}번</span>
-          <span className="fact-note">{todayNote(state.todayCount)}</span>
         </div>
-
         <div className="fact">
-          <span className="fact-label">전부 합쳐서</span>
-          <span className="fact-value">{ordinal(state.totalCount)}</span>
-          <span className="fact-note">뚱냥이는 다 세고 있었어요</span>
+          <span className="fact-label">전부</span>
+          <span className="fact-value">{state.totalCount.toLocaleString("ko-KR")}</span>
         </div>
-
         <div className="fact">
           <span className="fact-label">연속</span>
-          <span className="fact-value">{state.streakDays}일째</span>
-          <span className="fact-note">
-            {state.streakDays >= 7 ? "이제 그만 와도 되는데" : "하루라도 빠지면 처음부터예요"}
-          </span>
+          <span className="fact-value">{state.streakDays}일</span>
         </div>
-
         <div className="fact">
           <span className="fact-label">모은 말</span>
           <span className="fact-value">
-            {collected} / {TOTAL_LINE_COUNT}
-          </span>
-          <span className="fact-note">
-            {collected >= TOTAL_LINE_COUNT ? "다 모았어요. 정말 할 일이 없으시군요" : "도감에서 볼 수 있어요"}
+            {collected}
+            <span className="fact-total">/{TOTAL_LINE_COUNT}</span>
           </span>
         </div>
       </section>

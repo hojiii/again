@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TabBar, type TabId } from "./components/TabBar";
+import { STORAGE_KEYS, loadJson, saveJson } from "./lib/storage";
 import { AdFreeProvider } from "./providers/AdFreeProvider";
 import { VisitProvider } from "./providers/VisitProvider";
 import { DexPage } from "./pages/DexPage";
+import { GuidePage } from "./pages/GuidePage";
+import { OnboardingPage } from "./pages/OnboardingPage";
 import { HomePage } from "./pages/HomePage";
 import { SettingsPage } from "./pages/SettingsPage";
 
@@ -15,12 +18,34 @@ import { SettingsPage } from "./pages/SettingsPage";
  */
 function App() {
   const [tab, setTab] = useState<TabId>("home");
+  /** null 이면 아직 확인 전이라 아무것도 그리지 않아요. 화면이 깜빡이지 않게요. */
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      setOnboarded(await loadJson<boolean>(STORAGE_KEYS.onboarded, false));
+    })();
+  }, []);
+
+  if (onboarded === null) return null;
+
+  if (!onboarded) {
+    return (
+      <OnboardingPage
+        onDone={() => {
+          setOnboarded(true);
+          void saveJson(STORAGE_KEYS.onboarded, true);
+        }}
+      />
+    );
+  }
 
   return (
     <AdFreeProvider>
       <VisitProvider>
         {tab === "home" && <HomePage />}
         {tab === "dex" && <DexPage />}
+        {tab === "guide" && <GuidePage />}
         {tab === "settings" && <SettingsPage />}
 
         <TabBar active={tab} onChange={setTab} />

@@ -6,10 +6,20 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
-  min-height: 320px;
-  padding: 24px 0 8px;
+  gap: 10px;
+  padding: 8px 0 4px;
   text-align: center;
+}
+
+/* 배너가 첫 화면에 들어오도록 캐릭터를 조금 줄여요. */
+.stage .cat {
+  max-width: 200px;
+}
+
+.today-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-sub);
 }
 
 .speech {
@@ -80,42 +90,37 @@
 /* ------------------------------------------------------------------ */
 
 .facts {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.fact {
   display: grid;
-  grid-template-columns: 84px 1fr;
-  grid-template-areas:
-    "label value"
-    "label note";
-  align-items: baseline;
-  gap: 2px 12px;
-  padding: 14px 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+  padding: 14px 8px;
   border-radius: var(--radius);
   background: var(--surface);
 }
 
+.fact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
 .fact-label {
-  grid-area: label;
-  align-self: center;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-weak);
 }
 
 .fact-value {
-  grid-area: value;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
-.fact-note {
-  grid-area: note;
-  font-size: 13px;
+.fact-total {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-weak);
 }
 

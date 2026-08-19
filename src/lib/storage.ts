@@ -78,6 +78,8 @@ export async function saveJson(key: string, value: unknown): Promise<void> {
 }
 
 export const STORAGE_KEYS = {
+  /** 첫 사용 안내를 봤는지예요. */
+  onboarded: "onboarded",
   /** 방문 횟수·연속일·본 대사 id를 함께 담아요. */
   visit: "visit",
   adFree: "adFree",

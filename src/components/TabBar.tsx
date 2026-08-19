@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import "./TabBar.css";
 
-export type TabId = "home" | "dex" | "settings";
+export type TabId = "home" | "dex" | "guide" | "settings";
 
 const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
   {
@@ -22,6 +22,17 @@ const TABS: { id: TabId; label: string; icon: ReactNode }[] = [
       <>
         <path d="M5 5.2h11.4a2.4 2.4 0 0 1 2.4 2.4v11.2H7.4A2.4 2.4 0 0 1 5 16.4z" strokeWidth="1.8" strokeLinejoin="round" />
         <path d="M5 16.4a2.4 2.4 0 0 1 2.4-2.4h11.4" strokeWidth="1.8" strokeLinejoin="round" />
+      </>
+    ),
+  },
+  {
+    id: "guide",
+    label: "가이드",
+    icon: (
+      <>
+        <circle cx="12" cy="12" r="9" strokeWidth="1.9" />
+        <path d="M12 11v6" strokeWidth="1.9" strokeLinecap="round" />
+        <circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none" />
       </>
     ),
   },

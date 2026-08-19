@@ -1,0 +1,74 @@
+/**
+ * 가이드 화면 스타일.
+ */
+
+.touch-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.touch-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.touch-emoji {
+  flex: none;
+  width: 34px;
+  font-size: 22px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.touch-title {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* 도감 조건 목록 */
+.condition-list {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.condition-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.condition-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.condition-count {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.condition-hint {
+  grid-column: 1;
+  font-size: 12px;
+  color: var(--text-weak);
+}
