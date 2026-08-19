@@ -8,7 +8,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { VisitCtx } from "../hooks/useVisit";
-import { pickPetLine, pickPokeLine, pickTreatLine, type Line } from "../lib/lines";
+import {
+  pickBellyLine,
+  pickPawLine,
+  pickPetLine,
+  pickPokeLine,
+  pickTreatLine,
+  type Line,
+} from "../lib/lines";
 import { EMPTY_STATE, registerVisit, type VisitState } from "../lib/visits";
 import { STORAGE_KEYS, loadJson, saveJson } from "../lib/storage";
 
@@ -66,6 +73,8 @@ export function VisitProvider({ children }: { children: ReactNode }) {
   const giveTreat = useCallback(() => speak(pickTreatLine), [speak]);
   const pokeNose = useCallback(() => speak(pickPokeLine), [speak]);
   const pet = useCallback(() => speak(pickPetLine), [speak]);
+  const rubBelly = useCallback(() => speak(pickBellyLine), [speak]);
+  const pressPaw = useCallback(() => speak(pickPawLine), [speak]);
 
   const reset = useCallback(() => {
     setState(EMPTY_STATE);
@@ -75,8 +84,8 @@ export function VisitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ state, loading, line, isNewLine, reset, giveTreat, pokeNose, pet }),
-    [state, loading, line, isNewLine, reset, giveTreat, pokeNose, pet],
+    () => ({ state, loading, line, isNewLine, reset, giveTreat, pokeNose, pet, rubBelly, pressPaw }),
+    [state, loading, line, isNewLine, reset, giveTreat, pokeNose, pet, rubBelly, pressPaw],
   );
 
   return <VisitCtx.Provider value={value}>{children}</VisitCtx.Provider>;

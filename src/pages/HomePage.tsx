@@ -25,7 +25,7 @@ function todayNote(count: number): string {
 }
 
 export function HomePage() {
-  const { state, line, isNewLine, loading, giveTreat, pokeNose, pet } = useVisit();
+  const { state, line, isNewLine, loading, giveTreat, pokeNose, pet, rubBelly, pressPaw } = useVisit();
   const { adFree } = useAdFree();
 
   // 광고를 지운 사람에게는 간식 버튼을 아예 띄우지 않아요. 보여줄 광고가 없으니까요.
@@ -44,13 +44,19 @@ export function HomePage() {
   return (
     <main className="page">
       <div className="stage">
-        <Cat mood={line.mood} onPokeNose={pokeNose} onPet={pet} />
+        <Cat
+          mood={line.mood}
+          onPokeNose={pokeNose}
+          onPet={pet}
+          onBellyRub={rubBelly}
+          onPawPress={pressPaw}
+        />
 
         <p className="speech" key={line.id}>
           {line.text}
         </p>
 
-        <p className="touch-hint">코를 누르거나 쓰다듬어 보세요</p>
+        <p className="touch-hint">머리 쓰다듬기 · 코 꾹 · 배 문지르기 · 발바닥 🐾</p>
 
         {isNewLine && <p className="new-badge">처음 듣는 말이에요 · 도감에 담겼어요</p>}
 

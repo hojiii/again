@@ -1,337 +1,357 @@
 /**
- * 캐릭터 "뚱냥이".
+ * 캐릭터 "뚱냥이" — 스코티시 폴드.
  *
- * 빵빵한 볼, 짧은 주둥이, 큰 눈, 작고 둥근 귀. 치즈 태비 단모종의 인상을 잡았어요.
- * 잘생기게 그리지 않았어요. 살짝 심통난 얼굴이 이 앱의 톤과 맞아요.
+ * 그림과 인터랙션 설계는 사용자가 그린 SVG를 그대로 가져왔어요. 레이어가 id로
+ * 나뉘어 있어서 부위별로 따로 움직일 수 있고, 그 위에 이 앱에만 필요한 것을 얹었어요.
  *
- * 사진처럼 털 한 올까지 그리는 건 SVG로 안 돼요. 대신 그라디언트로 볼륨을 만들고,
- * 볼·눈·코의 비율과 수염 자국 같은 디테일로 인상을 맞춰요. path 를 수백 개 쓰면
- * 사진에 가까워지겠지만 찌부와 쓰다듬기 애니메이션이 버벅여요.
+ * 얹은 것은 **기분(mood)** 이에요. 원본에는 표정 변화가 없는데, 이 앱은 자주 열수록
+ * 뚱냥이가 시큰둥해지는 게 핵심이라 눈·귀·입이 기분을 따라 움직여야 해요. 부위가
+ * 나뉘어 있으니 CSS 변형만으로 처리하고 그림 자체는 건드리지 않았어요.
  *
- * 만질 수 있어요. 코를 누르면 얼굴이 찌부되고, 몸을 문지르면 눈을 감아요.
- * 3D 대신 SVG로 하는 건 번들 때문이에요 — three.js 하나가 앱 전체보다 커요.
- * 찌부와 쓰다듬기 정도는 SVG 변형으로 충분히 표현돼요.
+ * 만질 수 있는 곳은 네 군데예요. 머리(쓰다듬기), 코(꾹 누르기), 배(문지르기),
+ * 앞발(누르기). 각각 전용 대사가 있고 도감에 따로 쌓여요.
  */
 
 import { useEffect, useRef, useState } from "react";
 import type { Mood } from "../lib/lines";
 import "./Cat.css";
 
-/**
- * 기분마다 자세가 달라져요.
- *
- * 몸은 앉은 자세의 아래쪽 덩어리, 머리는 그 위에 얹힌 원이에요. 지칠수록 몸이
- * 옆으로 퍼지고 머리가 몸에 파묻혀요 — 목이 짧아지면서 주저앉는 모양이에요.
- */
-const POSE: Record<Mood, { bodyRx: number; bodyRy: number; bodyCy: number; headR: number; headCy: number }> = {
-  happy: { bodyRx: 74, bodyRy: 54, bodyCy: 176, headR: 58, headCy: 108 },
-  neutral: { bodyRx: 77, bodyRy: 53, bodyCy: 178, headR: 58, headCy: 112 },
-  bored: { bodyRx: 83, bodyRy: 50, bodyCy: 182, headR: 57, headCy: 120 },
-  annoyed: { bodyRx: 90, bodyRy: 46, bodyCy: 186, headR: 56, headCy: 130 },
-  dead: { bodyRx: 104, bodyRy: 36, bodyCy: 196, headR: 54, headCy: 152 },
-};
-
-/** 눈이 얼마나 떠 있는지예요. 0이면 감은 거예요. */
-const OPENNESS: Record<Mood, number> = {
-  happy: 0.92,
-  neutral: 1,
-  bored: 0.62,
-  annoyed: 0.4,
-  dead: 0,
-};
-
 interface Props {
   mood: Mood;
-  size?: number;
+  /** 머리를 쓰다듬었을 때 불려요. */
+  onPet?: () => void;
   /** 코를 눌렀을 때 불려요. */
   onPokeNose?: () => void;
-  /** 몸을 문질렀을 때 불려요. 연속으로 문질러도 자주 불리지 않아요. */
-  onPet?: () => void;
+  /** 배를 문질렀을 때 불려요. */
+  onBellyRub?: () => void;
+  /** 앞발을 눌렀을 때 불려요. */
+  onPawPress?: () => void;
 }
 
-export function Cat({ mood, size = 260, onPokeNose, onPet }: Props) {
-  const [squished, setSquished] = useState(false);
-  const [petting, setPetting] = useState(false);
+interface Heart {
+  id: number;
+  x: number;
+  y: number;
+}
 
-  // 쓰다듬기는 손가락이 일정 거리 이상 움직였을 때만 쳐요. 그냥 탭한 걸
-  // 쓰다듬었다고 하면 코를 누르려다 빗나간 것까지 쓰다듬기가 돼요.
-  const strokeDistance = useRef(0);
-  const lastPoint = useRef<{ x: number; y: number } | null>(null);
-  const petCooldown = useRef(0);
-  const squishTimer = useRef<number | null>(null);
+/** 같은 곳을 계속 문질러도 대사가 쏟아지지 않게 두는 최소 간격이에요. */
+const SPEAK_COOLDOWN_MS = 1300;
+
+export function Cat({ mood, onPet, onPokeNose, onBellyRub, onPawPress }: Props) {
+  const [petting, setPetting] = useState(false);
+  const [squish, setSquish] = useState<"none" | "soft" | "deep">("none");
+  const [bellyRubbing, setBellyRubbing] = useState(false);
+  const [purring, setPurring] = useState(false);
+  const [pressedPaw, setPressedPaw] = useState<"left" | "right" | null>(null);
+  const [hearts, setHearts] = useState<Heart[]>([]);
+
+  const heartId = useRef(0);
+  const lastX = useRef(0);
+  const distance = useRef(0);
+  const dragging = useRef<"head" | "belly" | null>(null);
+  const spokeAt = useRef(0);
+
   const petTimer = useRef<number | null>(null);
+  const bellyTimer = useRef<number | null>(null);
+  const purrTimer = useRef<number | null>(null);
+  const deepTimer = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
-      if (squishTimer.current != null) window.clearTimeout(squishTimer.current);
-      if (petTimer.current != null) window.clearTimeout(petTimer.current);
+      [petTimer, bellyTimer, purrTimer, deepTimer].forEach((timer) => {
+        if (timer.current != null) window.clearTimeout(timer.current);
+      });
     };
   }, []);
 
-  function pokeNose() {
-    setSquished(true);
-    if (squishTimer.current != null) window.clearTimeout(squishTimer.current);
-    squishTimer.current = window.setTimeout(() => setSquished(false), 420);
-    onPokeNose?.();
+  /** 하트를 하나 띄워요. 애니메이션이 끝나면 스스로 사라져요. */
+  function spawnHeart(x: number, y: number) {
+    const id = heartId.current++;
+    setHearts((prev) => [...prev, { id, x, y }]);
+    window.setTimeout(() => {
+      setHearts((prev) => prev.filter((heart) => heart.id !== id));
+    }, 1300);
   }
 
-  function handleMove(x: number, y: number) {
-    const last = lastPoint.current;
-    lastPoint.current = { x, y };
-    if (last == null) return;
+  function purr(ms: number) {
+    setPurring(true);
+    if (purrTimer.current != null) window.clearTimeout(purrTimer.current);
+    purrTimer.current = window.setTimeout(() => setPurring(false), ms);
+  }
 
-    strokeDistance.current += Math.hypot(x - last.x, y - last.y);
-    if (strokeDistance.current < 90) return;
-
-    strokeDistance.current = 0;
-
-    // 문지르는 내내 대사가 쏟아지면 정신없어요. 최소 간격을 둬요.
+  /** 대사가 너무 자주 나오면 정신없어요. 간격을 두고 불러요. */
+  function speak(say?: () => void) {
     const now = Date.now();
-    if (now - petCooldown.current < 1400) return;
-    petCooldown.current = now;
-
-    setPetting(true);
-    if (petTimer.current != null) window.clearTimeout(petTimer.current);
-    petTimer.current = window.setTimeout(() => setPetting(false), 1200);
-    onPet?.();
+    if (now - spokeAt.current < SPEAK_COOLDOWN_MS) return;
+    spokeAt.current = now;
+    say?.();
   }
 
-  function endStroke() {
-    lastPoint.current = null;
-    strokeDistance.current = 0;
+  function startDrag(target: "head" | "belly", event: React.PointerEvent) {
+    dragging.current = target;
+    lastX.current = event.clientX;
+    distance.current = 0;
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  const pose = POSE[mood];
-  const rx = pose.bodyRx;
-  const ry = pose.bodyRy;
-  const cy = pose.bodyCy;
+  function moveDrag(event: React.PointerEvent) {
+    if (dragging.current == null) return;
 
-  // 코를 누르면 머리만 눌려요. 몸까지 같이 움직이면 찌부가 아니라 통째로 흔들려요.
-  const headRx = squished ? pose.headR * 1.12 : pose.headR;
-  const headRy = squished ? pose.headR * 0.86 : pose.headR;
-  const headCy = squished ? pose.headCy + 7 : pose.headCy;
+    const delta = Math.abs(event.clientX - lastX.current);
+    lastX.current = event.clientX;
 
-  // 쓰다듬는 중에는 기분과 상관없이 눈을 가늘게 떠요.
-  const openness = petting ? 0.15 : OPENNESS[mood];
-  const eyeY = headCy - headRy * 0.1;
-  const noseY = eyeY + 30;
+    if (dragging.current === "head") {
+      distance.current += delta;
+      if (distance.current <= 24) return;
+      distance.current = 0;
+
+      setPetting(true);
+      purr(900);
+      if (petTimer.current != null) window.clearTimeout(petTimer.current);
+      petTimer.current = window.setTimeout(() => setPetting(false), 700);
+      if (Math.random() > 0.55) spawnHeart(280 + (Math.random() * 80 - 40), 190);
+      speak(onPet);
+      return;
+    }
+
+    if (delta <= 8) return;
+    setBellyRubbing(true);
+    purr(800);
+    if (bellyTimer.current != null) window.clearTimeout(bellyTimer.current);
+    bellyTimer.current = window.setTimeout(() => setBellyRubbing(false), 700);
+    if (Math.random() > 0.68) spawnHeart(280 + (Math.random() * 100 - 50), 390);
+    speak(onBellyRub);
+  }
+
+  function endDrag() {
+    dragging.current = null;
+    distance.current = 0;
+  }
+
+  function pressNose(event: React.PointerEvent) {
+    event.stopPropagation();
+    setPetting(false);
+    setSquish("soft");
+    speak(onPokeNose);
+
+    // 오래 누르고 있으면 더 눌려요.
+    if (deepTimer.current != null) window.clearTimeout(deepTimer.current);
+    deepTimer.current = window.setTimeout(() => {
+      setSquish("deep");
+      spawnHeart(280, 160);
+    }, 420);
+  }
+
+  function releaseNose() {
+    if (deepTimer.current != null) window.clearTimeout(deepTimer.current);
+    setSquish("none");
+  }
+
+  function pressPaw(side: "left" | "right", event: React.PointerEvent) {
+    event.stopPropagation();
+    setPressedPaw(side);
+    purr(450);
+    spawnHeart(side === "left" ? 205 : 355, 480);
+    speak(onPawPress);
+  }
+
+  const className = [
+    "cat",
+    `is-${mood}`,
+    petting ? "is-pet" : "",
+    squish === "soft" ? "is-squish" : "",
+    squish === "deep" ? "is-squish is-deep" : "",
+    bellyRubbing ? "is-belly" : "",
+    purring ? "is-purring" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <svg
-      className={[
-        "cat",
-        `is-${mood}`,
-        squished ? "is-squished" : "",
-        petting ? "is-petting" : "",
-      ].filter(Boolean).join(" ")}
-      width={size}
-      height={size * 0.92}
-      viewBox="0 0 260 240"
+      className={className}
+      viewBox="0 0 560 590"
       role="img"
       aria-label="뚱냥이"
-      onPointerDown={(event) => {
-        lastPoint.current = { x: event.clientX, y: event.clientY };
-        strokeDistance.current = 0;
-      }}
-      onPointerMove={(event) => {
-        if (event.buttons === 0 && event.pointerType === "mouse") return;
-        handleMove(event.clientX, event.clientY);
-      }}
-      onPointerUp={endStroke}
-      onPointerLeave={endStroke}
+      onPointerMove={moveDrag}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
     >
-      <defs>
-        {/* 몸통 볼륨 — 왼쪽 위에서 빛이 들어와요. */}
-        <radialGradient id="catFur" cx="36%" cy="24%" r="82%">
-          <stop offset="0%" stopColor="var(--cat-fur-light)" />
-          <stop offset="52%" stopColor="var(--cat-fur)" />
-          <stop offset="100%" stopColor="var(--cat-fur-dark)" />
-        </radialGradient>
-
-        {/* 얼굴 가운데와 가슴은 크림색으로 빠져요. 사진 속 치즈냥의 특징이에요. */}
-        <radialGradient id="catBelly" cx="50%" cy="30%" r="74%">
-          <stop offset="0%" stopColor="var(--cat-belly-light)" />
-          <stop offset="100%" stopColor="var(--cat-belly)" />
-        </radialGradient>
-
-        {/* 볼 — 가장자리로 갈수록 몸통 색에 녹아들어요. */}
-        <radialGradient id="catCheek" cx="45%" cy="35%" r="70%">
-          <stop offset="0%" stopColor="var(--cat-belly-light)" />
-          <stop offset="70%" stopColor="var(--cat-belly)" />
-          <stop offset="100%" stopColor="var(--cat-belly)" stopOpacity="0" />
-        </radialGradient>
-
-        {/* 눈동자 — 위가 어둡고 아래가 밝아야 구슬처럼 보여요. */}
-        <radialGradient id="catIris" cx="50%" cy="62%" r="62%">
-          <stop offset="0%" stopColor="var(--cat-iris-light)" />
-          <stop offset="100%" stopColor="var(--cat-iris)" />
-        </radialGradient>
-
-        {/* 몸 아래쪽 그늘 */}
-        <linearGradient id="catShade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="55%" stopColor="#000" stopOpacity="0" />
-          <stop offset="100%" stopColor="#000" stopOpacity="0.13" />
-        </linearGradient>
-
-        <clipPath id="catBodyClip">
-          <ellipse cx="130" cy={cy} rx={rx} ry={ry} />
-        </clipPath>
-      </defs>
-
-      {/* 바닥 그림자 */}
-      <ellipse className="cat-shadow" cx="130" cy={cy + ry - 2} rx={rx * 0.94} ry="12" />
-
-      {/* 꼬리 — 몸 옆을 감아 앞으로 나와요 */}
-      <path
-        className="cat-tail"
-        d={
-          mood === "dead"
-            ? `M${130 + rx - 6} ${cy + 6} q46 10 30 28`
-            : `M${130 + rx - 8} ${cy + 10} q50 -2 34 -44`
-        }
-      />
-
-      {/* 몸 — 앉은 자세의 아래쪽 덩어리 */}
-      <ellipse className="cat-body" cx="130" cy={cy} rx={rx} ry={ry} />
-
-      {/* 가슴의 크림색 */}
-      <ellipse className="cat-belly" cx="130" cy={cy + ry * 0.2} rx={rx * 0.52} ry={ry * 0.72} />
-
-      {/* 등 줄무늬 */}
-      <g className="cat-stripes" clipPath="url(#catBodyClip)">
-        <path d={`M${130 - rx * 0.86} ${cy - 12} q20 8 30 6`} />
-        <path d={`M${130 + rx * 0.86} ${cy - 12} q-20 8 -30 6`} />
-        <path d={`M${130 - rx * 0.8} ${cy + 10} q18 8 28 6`} />
-        <path d={`M${130 + rx * 0.8} ${cy + 10} q-18 8 -28 6`} />
+      <g id="tail" className="tailIdle">
+        <path
+          d="M389 438 C481 421 506 475 465 506 C435 528 408 496 432 478 C455 460 442 444 395 458"
+          fill="none"
+          stroke="#D88932"
+          strokeWidth="34"
+          strokeLinecap="round"
+        />
       </g>
 
-      <ellipse className="cat-shade" cx="130" cy={cy} rx={rx} ry={ry} clipPath="url(#catBodyClip)" />
+      <g id="body" className="breath">
+        <ellipse cx="280" cy="445" rx="133" ry="110" fill="#E6A04B" />
+        <ellipse cx="280" cy="463" rx="88" ry="74" fill="#FFD48A" />
+        <ellipse cx="280" cy="453" rx="54" ry="48" fill="#FFE8B9" opacity=".65" />
+      </g>
 
-      {/* 앞발 — 사진처럼 몸 앞으로 모아요 */}
-      <g className="cat-paws">
-        {[-1, 1].map((side) => (
-          <g key={side}>
-            <ellipse cx={130 + side * rx * 0.38} cy={cy + ry - 6} rx="24" ry="13" />
-            <g className="cat-toe">
-              <path d={`M${130 + side * rx * 0.38 - 8} ${cy + ry - 13} v8`} />
-              <path d={`M${130 + side * rx * 0.38 + 1} ${cy + ry - 14} v9`} />
-              <path d={`M${130 + side * rx * 0.38 + 10} ${cy + ry - 13} v8`} />
-            </g>
+      <g id="pawL" className={pressedPaw === "left" ? "is-pressed" : undefined}>
+        <ellipse cx="204" cy="522" rx="46" ry="27" fill="#F0B45F" />
+        <ellipse cx="204" cy="522" rx="25" ry="16" fill="#dfc7c3" />
+        <circle cx="187" cy="511" r="7" fill="#dfc7c3" />
+        <circle cx="204" cy="507" r="7" fill="#dfc7c3" />
+        <circle cx="221" cy="511" r="7" fill="#dfc7c3" />
+      </g>
+
+      <g id="pawR" className={pressedPaw === "right" ? "is-pressed" : undefined}>
+        <ellipse cx="356" cy="522" rx="46" ry="27" fill="#F0B45F" />
+        <ellipse cx="356" cy="522" rx="25" ry="16" fill="#dfc7c3" />
+        <circle cx="339" cy="511" r="7" fill="#dfc7c3" />
+        <circle cx="356" cy="507" r="7" fill="#dfc7c3" />
+        <circle cx="373" cy="511" r="7" fill="#dfc7c3" />
+      </g>
+
+      <g id="head">
+        <ellipse cx="280" cy="250" rx="151" ry="137" fill="#E6A04B" />
+        <ellipse cx="280" cy="282" rx="111" ry="87" fill="#FFE0A3" />
+      </g>
+
+      <g id="ears">
+        <path d="M160 197 C129 145 156 116 214 139 C193 148 179 169 174 199 Z" fill="#C97828" />
+        <path d="M400 197 C431 145 404 116 346 139 C367 148 381 169 386 199 Z" fill="#C97828" />
+        <path d="M168 175 C157 151 171 139 196 146 C183 155 176 165 172 178 Z" fill="#c9aaa7" opacity=".78" />
+        <path d="M392 175 C403 151 389 139 364 146 C377 155 384 165 388 178 Z" fill="#c9aaa7" opacity=".78" />
+      </g>
+
+      <path
+        d="M231 164 C253 147 271 148 280 164 C289 148 307 147 329 164"
+        fill="none"
+        stroke="#C97828"
+        strokeWidth="14"
+        strokeLinecap="round"
+      />
+
+      {/* 치즈 태비 무늬 */}
+      <g
+        id="tabbyMarks"
+        fill="none"
+        stroke="#C97828"
+        strokeWidth="10"
+        strokeLinecap="round"
+        opacity=".82"
+        pointerEvents="none"
+      >
+        <path d="M247 176 Q260 190 266 208" />
+        <path d="M280 168 L280 207" />
+        <path d="M313 176 Q300 190 294 208" />
+        <path d="M160 236 Q180 244 192 259" />
+        <path d="M400 236 Q380 244 368 259" />
+      </g>
+
+      <g id="eyes" className="blink">
+        <ellipse cx="222" cy="244" rx="26" ry="31" fill="#33312f" />
+        <ellipse cx="338" cy="244" rx="26" ry="31" fill="#33312f" />
+        <circle cx="214" cy="235" r="7" fill="#fff" opacity=".9" />
+        <circle cx="330" cy="235" r="7" fill="#fff" opacity=".9" />
+      </g>
+
+      {/*
+        기분이 가라앉으면 위 눈꺼풀이 내려와요. 눈 자체는 원본 그대로 두고 덮는
+        방식이라, 그림을 고치지 않고도 표정을 만들 수 있어요.
+      */}
+      <g id="lids" pointerEvents="none">
+        <ellipse cx="222" cy="244" rx="27" ry="32" fill="#E6A04B" />
+        <ellipse cx="338" cy="244" rx="27" ry="32" fill="#E6A04B" />
+      </g>
+
+      <g id="cheeks">
+        <ellipse cx="210" cy="311" rx="50" ry="37" fill="#FFE1A8" opacity=".97" />
+        <ellipse cx="350" cy="311" rx="50" ry="37" fill="#FFE1A8" opacity=".97" />
+      </g>
+
+      <g id="nose">
+        <path d="M260 286 Q280 272 300 286 Q297 306 280 309 Q263 306 260 286Z" fill="#b98383" />
+      </g>
+
+      <g id="mouth">
+        <path
+          d="M280 307 C277 323 262 326 252 320 M280 307 C283 323 298 326 308 320"
+          fill="none"
+          stroke="#754A29"
+          strokeWidth="5"
+          strokeLinecap="round"
+        />
+      </g>
+
+      <g stroke="#9A632E" strokeWidth="3" strokeLinecap="round" opacity=".72">
+        <path d="M182 300 L118 288" />
+        <path d="M184 316 L114 318" />
+        <path d="M191 331 L129 353" />
+        <path d="M378 300 L442 288" />
+        <path d="M376 316 L446 318" />
+        <path d="M369 331 L431 353" />
+      </g>
+
+      <g id="heartLayer" pointerEvents="none">
+        {hearts.map((heart) => (
+          <g key={heart.id} className="heart" transform={`translate(${heart.x} ${heart.y})`}>
+            <path d="M0 10 C-24-5 -36 18 0 42 C36 18 24-5 0 10Z" fill="#e8a5ad" opacity=".95" />
           </g>
         ))}
       </g>
 
-      {/* 귀 — 머리 위에 작고 둥글게 */}
-      {[-1, 1].map((side) => {
-        const ex = 130 + side * headRx * 0.66;
-        const ey = headCy - headRy * 0.66;
-        return (
-          <g key={side}>
-            <path
-              className="cat-ear"
-              d={`M${ex} ${ey + 16} q${side * -4} -24 ${side * 15} -27 q${side * 19} -2 ${side * 20} 19 q${side * -15} 11 ${side * -35} 8z`}
-            />
-            <path
-              className="cat-ear-inner"
-              d={`M${ex + side * 2} ${ey + 13} q${side * -2} -15 ${side * 10} -18 q${side * 12} -1 ${side * 13} 12 q${side * -9} 6 ${side * -23} 6z`}
-            />
-          </g>
-        );
-      })}
-
-      {/* 머리 */}
-      <ellipse className="cat-head" cx="130" cy={headCy} rx={headRx} ry={headRy} />
-
-      {/* 이마 M자 태비 */}
-      <g className="cat-stripes">
-        <path d={`M130 ${headCy - headRy * 0.86} v18`} />
-        <path d={`M${130 - 14} ${headCy - headRy * 0.82} q3 10 5 17`} />
-        <path d={`M${130 + 14} ${headCy - headRy * 0.82} q-3 10 -5 17`} />
-        <path d={`M${130 - 28} ${headCy - headRy * 0.68} q4 9 8 14`} />
-        <path d={`M${130 + 28} ${headCy - headRy * 0.68} q-4 9 -8 14`} />
-      </g>
-
-      {/* 볼 — 이 품종의 인상을 만드는 부분이에요 */}
-      <ellipse className="cat-cheek" cx={130 - 32} cy={noseY} rx="30" ry="24" />
-      <ellipse className="cat-cheek" cx={130 + 32} cy={noseY} rx="30" ry="24" />
-
-      {/* 눈 */}
-      {openness <= 0.02 ? (
-        <g className="cat-line">
-          <path d={`M${130 - 36} ${eyeY} q14 12 28 0`} />
-          <path d={`M${130 + 8} ${eyeY} q14 12 28 0`} />
-        </g>
-      ) : (
-        <g>
-          {[130 - 22, 130 + 22].map((cx) => (
-            <g key={cx}>
-              <ellipse className="cat-eye-rim" cx={cx} cy={eyeY} rx="18" ry={18 * openness} />
-              <ellipse className="cat-eye-white" cx={cx} cy={eyeY} rx="16" ry={16 * openness} />
-              <ellipse className="cat-iris" cx={cx} cy={eyeY} rx="14" ry={14 * openness} />
-              <ellipse className="cat-pupil" cx={cx} cy={eyeY} rx="7" ry={12 * openness} />
-              <circle className="cat-glint" cx={cx - 5.5} cy={eyeY - 5.5 * openness} r={3.6 * openness + 1} />
-              <circle className="cat-glint-sm" cx={cx + 5.5} cy={eyeY + 5.5 * openness} r={1.8 * openness} />
-            </g>
-          ))}
-          {openness < 0.95 && (
-            <g className="cat-lid">
-              <ellipse cx={130 - 22} cy={eyeY - 18} rx="19" ry={18 * (1 - openness) + 2} />
-              <ellipse cx={130 + 22} cy={eyeY - 18} rx="19" ry={18 * (1 - openness) + 2} />
-            </g>
-          )}
-        </g>
-      )}
-
-      {/* 코 */}
-      <path className="cat-nose" d={`M${130 - 8} ${noseY - 5} q8 -3 16 0 q-3 8 -8 11 q-5 -3 -8 -11z`} />
-      <path className="cat-nose-line" d={`M130 ${noseY + 6} v5`} />
-
-      {/* 입 */}
-      <g className="cat-line cat-mouth">
-        {mood === "dead" ? (
-          <path d={`M${130 - 7} ${noseY + 12} h14`} />
-        ) : (
-          <>
-            <path d={`M130 ${noseY + 11} q-10 8 -18 1`} />
-            <path d={`M130 ${noseY + 11} q10 8 18 1`} />
-          </>
-        )}
-      </g>
-
-      {/* 수염 자국 점 */}
-      <g className="cat-dots">
-        {[-1, 1].map((side) =>
-          [0, 1, 2].map((row) => (
-            <circle
-              key={`${side}-${row}`}
-              cx={130 + side * (19 + (row % 2) * 8)}
-              cy={noseY + row * 6}
-              r="1.5"
-            />
-          )),
-        )}
-      </g>
-
-      {/* 수염 */}
-      <g className="cat-whisker">
-        <path d={`M${130 - 42} ${noseY - 2} q-32 -8 -50 -15`} />
-        <path d={`M${130 - 42} ${noseY + 6} q-34 0 -54 1`} />
-        <path d={`M${130 - 42} ${noseY + 14} q-32 9 -48 17`} />
-        <path d={`M${130 + 42} ${noseY - 2} q32 -8 50 -15`} />
-        <path d={`M${130 + 42} ${noseY + 6} q34 0 54 1`} />
-        <path d={`M${130 + 42} ${noseY + 14} q32 9 48 17`} />
-      </g>
-
-      {/* 코를 정확히 짚기 어려우니 넉넉한 투명 원을 겹쳐요. */}
-      <circle
-        className="cat-nose-hit"
-        cx="130"
-        cy={noseY}
-        r="26"
-        onPointerDown={(event) => {
-          event.stopPropagation();
-          pokeNose();
+      {/* 만지는 자리들. 그림보다 넉넉해야 손가락으로 짚을 수 있어요. */}
+      <ellipse
+        id="headHit"
+        cx="280"
+        cy="215"
+        rx="155"
+        ry="126"
+        fill="transparent"
+        onPointerDown={(event) => startDrag("head", event)}
+      />
+      <ellipse
+        id="bellyHit"
+        cx="280"
+        cy="454"
+        rx="95"
+        ry="78"
+        fill="transparent"
+        onPointerDown={(event) => startDrag("belly", event)}
+      />
+      <ellipse
+        id="noseHit"
+        cx="280"
+        cy="290"
+        rx="34"
+        ry="30"
+        fill="transparent"
+        onPointerDown={pressNose}
+        onPointerUp={releaseNose}
+        onPointerCancel={releaseNose}
+        onPointerLeave={(event) => {
+          if (event.buttons === 0) releaseNose();
         }}
+      />
+      <ellipse
+        id="pawLHit"
+        cx="204"
+        cy="522"
+        rx="48"
+        ry="30"
+        fill="transparent"
+        onPointerDown={(event) => pressPaw("left", event)}
+        onPointerUp={() => setPressedPaw(null)}
+        onPointerCancel={() => setPressedPaw(null)}
+      />
+      <ellipse
+        id="pawRHit"
+        cx="356"
+        cy="522"
+        rx="48"
+        ry="30"
+        fill="transparent"
+        onPointerDown={(event) => pressPaw("right", event)}
+        onPointerUp={() => setPressedPaw(null)}
+        onPointerCancel={() => setPressedPaw(null)}
       />
     </svg>
   );

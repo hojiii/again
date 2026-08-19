@@ -1,273 +1,390 @@
 /**
  * 뚱냥이 스타일.
  *
- * 색은 고등어태비를 기준으로 잡았어요. 앱의 보라 계열과 섞으면 캐릭터가 UI처럼
- * 보여서, 털은 실제 고양이 색으로 두고 배경만 앱 색을 써요.
+ * idle 움직임(눈 깜빡임·숨쉬기·꼬리)과 만졌을 때의 변형은 사용자가 그린 원본
+ * 그대로예요. 여기에 기분(mood)에 따른 표정만 얹었어요.
  */
 
 .cat {
-  /* 만질 수 있는 그림이에요. 드래그하면 브라우저가 이미지를 잡아채요. */
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+  filter: drop-shadow(0 14px 25px rgba(60, 45, 30, 0.08));
+  /* 만질 수 있는 그림이라 스크롤·선택에 뺏기면 안 돼요. */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   cursor: pointer;
-
-  /* 치즈냥. 등은 진한 주황, 배는 크림색으로 빠져요. */
-  --cat-fur-light: #fbdba7;
-  --cat-fur: #eeae63;
-  --cat-fur-dark: #c07c30;
-  --cat-belly-light: #fffcf5;
-  --cat-belly: #f7e6cc;
-  --cat-ear-inner-light: #ffd3d6;
-  --cat-ear-inner: #eda8ac;
-  --cat-stripe: #c47c28;
-  /* 사진 속 눈은 초록보다 호박·갈색에 가까워요. */
-  --cat-iris-light: #d99a3f;
-  --cat-iris: #9c6320;
-
-  width: 100%;
-  max-width: 260px;
-  height: auto;
-  /* 지칠수록 색이 빠지는 건 filter 하나로 처리해요. 도형마다 색을 바꾸지 않아요. */
-  transition: filter 420ms ease;
 }
 
-.cat.is-annoyed {
-  filter: saturate(0.6);
+.cat #head,
+.cat #ears,
+.cat #eyes,
+.cat #lids,
+.cat #cheeks,
+.cat #nose,
+.cat #mouth,
+.cat #tail,
+.cat #body,
+.cat #pawL,
+.cat #pawR,
+.cat #heartLayer {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.cat.is-dead {
-  filter: saturate(0.25) brightness(0.97);
+.cat #head,
+.cat #ears,
+.cat #eyes,
+.cat #lids,
+.cat #cheeks,
+.cat #nose,
+.cat #mouth,
+.cat #body,
+.cat #pawL,
+.cat #pawR {
+  transition: transform 150ms cubic-bezier(0.18, 0.75, 0.28, 1.25);
 }
 
-.cat-body,
-.cat-head {
-  fill: url(#catFur);
-  transition:
-    rx 420ms ease,
-    ry 420ms ease,
-    cy 420ms ease;
-}
-
-/* 머리에 살짝 그늘을 줘서 몸에 얹힌 게 보이게 해요. */
-.cat-head {
-  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.1));
-}
-
-/* 코를 누르면 짧고 탄력 있게 눌렸다 돌아와요. */
-.cat.is-squished .cat-head {
-  transition:
-    rx 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    ry 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    cy 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.cat-nose-hit {
-  fill: transparent;
+.cat #noseHit,
+.cat #pawLHit,
+.cat #pawRHit,
+.cat #bellyHit {
   cursor: pointer;
 }
 
-/* 쓰다듬는 동안 몸이 살짝 들썩여요. */
-.cat.is-petting {
-  animation: cat-purr 420ms ease-in-out infinite;
+.cat #headHit {
+  cursor: grab;
 }
 
-@keyframes cat-purr {
+.cat #headHit:active {
+  cursor: grabbing;
+}
+
+/* ------------------------------------------------------------------ */
+/* 가만히 있을 때                                                        */
+/* ------------------------------------------------------------------ */
+
+.blink {
+  animation: blink 5s infinite;
+}
+
+@keyframes blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  95%,
+  98% {
+    transform: scaleY(0.1);
+  }
+}
+
+.breath {
+  animation: breath 2.9s ease-in-out infinite;
+}
+
+@keyframes breath {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) scaleY(1);
   }
   50% {
-    transform: translateY(-2px);
+    transform: translateY(-2px) scaleY(1.022);
   }
 }
 
-.cat-belly {
-  fill: url(#catBelly);
-  transition:
-    rx 420ms ease,
-    ry 420ms ease,
-    cy 420ms ease;
+.tailIdle {
+  animation: tailIdle 3.3s ease-in-out infinite;
 }
 
-.cat-ear {
-  fill: var(--cat-fur);
-  transition: d 420ms ease;
-}
-
-.cat-ear-inner {
-  fill: url(#catEarInner);
-  transition: d 420ms ease;
-}
-
-.cat-tail {
-  fill: none;
-  stroke: var(--cat-fur);
-  stroke-width: 17;
-  stroke-linecap: round;
-  transition: d 420ms ease;
-}
-
-.cat-shadow {
-  fill: #000;
-  opacity: 0.07;
-  transition:
-    rx 420ms ease,
-    cy 420ms ease;
-}
-
-.cat-stripes path {
-  fill: none;
-  stroke: var(--cat-stripe);
-  stroke-width: 7;
-  stroke-linecap: round;
-  opacity: 0.34;
-}
-
-.cat-paws ellipse {
-  fill: var(--cat-belly);
-}
-
-.cat-toe path {
-  fill: none;
-  stroke: #b96f1d;
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0.45;
-}
-
-/* 눈 */
-.cat-eye-white {
-  fill: #fdfdfe;
-  transition: ry 320ms ease;
-}
-
-.cat-iris {
-  fill: url(#catIris);
-  transition: ry 320ms ease;
-}
-
-.cat-pupil {
-  fill: #1d2430;
-  transition: ry 320ms ease;
-}
-
-.cat-glint {
-  fill: #ffffff;
-  opacity: 0.95;
-}
-
-.cat-glint-sm {
-  fill: #ffffff;
-  opacity: 0.6;
-}
-
-.cat-lid ellipse {
-  fill: var(--cat-fur);
-  transition: ry 320ms ease;
-}
-
-.cat-line path {
-  fill: none;
-  stroke: #8f5310;
-  stroke-width: 5;
-  stroke-linecap: round;
-}
-
-.cat-mouth path {
-  stroke-width: 4;
-}
-
-.cat-muzzle {
-  fill: var(--cat-belly-light);
-  opacity: 0.9;
-}
-
-.cat-nose {
-  fill: #e2808f;
-}
-
-.cat-nose-glint {
-  fill: none;
-  stroke: #ffffff;
-  stroke-width: 2;
-  stroke-linecap: round;
-  opacity: 0.5;
-}
-
-.cat-whisker path {
-  fill: none;
-  stroke: #ffffff;
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  opacity: 0.85;
-}
-
-/* 기분 좋을 때만 숨을 쉬어요. */
-.cat.is-happy,
-.cat.is-neutral {
-  animation: cat-breathe 3.4s ease-in-out infinite;
-}
-
-@keyframes cat-breathe {
+@keyframes tailIdle {
   0%,
   100% {
-    transform: translateY(0) scale(1);
+    transform: rotate(-6deg);
   }
   50% {
-    transform: translateY(-3px) scale(1.012);
+    transform: rotate(8deg);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* 기분                                                                 */
+/* ------------------------------------------------------------------ */
+
+/*
+ * 눈꺼풀은 눈을 덮는 타원이에요. 기분이 좋을 때는 눈 위로 완전히 올려두고,
+ * 지칠수록 내려서 눈을 가려요. 눈 자체를 줄이지 않는 건 원본 그림을 건드리지
+ * 않기 위해서예요.
+ */
+.cat #lids {
+  transform: translateY(-64px);
+}
+
+.cat.is-neutral #lids {
+  transform: translateY(-62px);
+}
+
+.cat.is-bored #lids {
+  transform: translateY(-46px);
+}
+
+.cat.is-annoyed #lids {
+  transform: translateY(-36px);
+}
+
+.cat.is-dead #lids {
+  transform: translateY(-26px);
+}
+
+/* 지칠수록 귀가 처지고 몸이 내려앉아요. */
+.cat.is-bored #ears {
+  transform: translateY(6px) scaleY(0.92);
+}
+
+.cat.is-annoyed #ears {
+  transform: translateY(12px) scaleY(0.82) rotate(-1deg);
+}
+
+.cat.is-dead #ears {
+  transform: translateY(20px) scaleY(0.68);
+}
+
+.cat.is-annoyed #head {
+  transform: translateY(8px);
+}
+
+.cat.is-dead #head {
+  transform: translateY(18px) scaleY(0.94);
+}
+
+.cat.is-dead #body {
+  transform: scaleX(1.04) scaleY(0.95) translateY(4px);
+}
+
+/* 기분이 가라앉으면 입꼬리가 내려가요. */
+.cat.is-annoyed #mouth {
+  transform: translateY(6px) scaleY(-0.8) scaleX(0.9);
+}
+
+.cat.is-dead #mouth {
+  transform: translateY(10px) scaleY(-0.6) scaleX(0.8);
+}
+
+/* 지친 상태에서는 꼬리도 늘어져요. */
+.cat.is-annoyed .tailIdle,
+.cat.is-dead .tailIdle {
+  animation-duration: 6.5s;
+}
+
+.cat.is-dead .blink {
+  animation: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* 쓰다듬기                                                             */
+/* ------------------------------------------------------------------ */
+
+.cat.is-pet #head {
+  transform: translateY(4px) rotate(2deg) scaleX(1.015);
+}
+
+.cat.is-pet #ears {
+  transform: translateY(4px) scaleY(0.84) rotate(-1deg);
+}
+
+/* 쓰다듬는 동안은 기분과 상관없이 눈을 가늘게 떠요. */
+.cat.is-pet #lids {
+  transform: translateY(-22px);
+}
+
+.cat.is-pet #cheeks {
+  transform: translateY(2px) scaleX(1.04);
+}
+
+.cat.is-pet #mouth {
+  transform: translateY(3px) scaleX(1.15);
+}
+
+.cat.is-pet #tail {
+  animation: tailHappy 0.28s ease-in-out infinite alternate;
+}
+
+.cat.is-pet #body {
+  animation: purrBody 0.16s ease-in-out infinite alternate;
+}
+
+@keyframes tailHappy {
+  from {
+    transform: rotate(-18deg);
+  }
+  to {
+    transform: rotate(22deg);
+  }
+}
+
+@keyframes purrBody {
+  from {
+    transform: translateX(-1px);
+  }
+  to {
+    transform: translateX(1px);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 코 누르기                                                            */
+/* ------------------------------------------------------------------ */
+
+.cat.is-squish #head {
+  transform: translateY(16px) scaleX(1.18) scaleY(0.75);
+}
+
+.cat.is-squish #ears {
+  transform: translateY(20px) scaleX(1.08) scaleY(0.68);
+}
+
+.cat.is-squish #lids {
+  transform: translateY(-14px) scaleX(1.12);
+}
+
+.cat.is-squish #cheeks {
+  transform: translateY(10px) scaleX(1.32) scaleY(0.82);
+}
+
+.cat.is-squish #nose {
+  transform: translateY(14px) scale(0.62);
+}
+
+.cat.is-squish #mouth {
+  transform: translateY(15px) scaleX(1.4) scaleY(0.65);
+}
+
+.cat.is-squish #body {
+  transform: translateY(3px) scaleX(1.02) scaleY(0.985);
+}
+
+/* 오래 누르고 있으면 더 눌려요. */
+.cat.is-deep #head {
+  transform: translateY(24px) scaleX(1.24) scaleY(0.67);
+}
+
+.cat.is-deep #ears {
+  transform: translateY(30px) scaleX(1.12) scaleY(0.6);
+}
+
+.cat.is-deep #lids {
+  transform: translateY(-8px) scaleX(1.18);
+}
+
+.cat.is-deep #cheeks {
+  transform: translateY(14px) scaleX(1.42) scaleY(0.76);
+}
+
+.cat.is-deep #nose {
+  transform: translateY(19px) scale(0.52);
+}
+
+.cat.is-deep #mouth {
+  transform: translateY(20px) scaleX(1.55) scaleY(0.55);
+}
+
+/* ------------------------------------------------------------------ */
+/* 배 문지르기 · 발바닥                                                  */
+/* ------------------------------------------------------------------ */
+
+.cat.is-belly #body {
+  transform: translateY(2px) scaleX(1.04) scaleY(0.97);
+}
+
+.cat.is-belly #pawL {
+  transform: translate(-8px, -4px) rotate(-10deg);
+}
+
+.cat.is-belly #pawR {
+  transform: translate(8px, -4px) rotate(10deg);
+}
+
+.cat.is-belly #lids {
+  transform: translateY(-30px);
+}
+
+.cat.is-belly #tail {
+  animation: tailHappy 0.24s ease-in-out infinite alternate;
+}
+
+.cat #pawL.is-pressed,
+.cat #pawR.is-pressed {
+  transform: scaleY(0.72) translateY(8px);
+}
+
+/* ------------------------------------------------------------------ */
+/* 그르렁 · 하트                                                        */
+/* ------------------------------------------------------------------ */
+
+.cat.is-purring #body,
+.cat.is-purring #head {
+  animation: purrVibe 0.09s linear infinite alternate;
+}
+
+@keyframes purrVibe {
+  from {
+    transform: translateX(-1px);
+  }
+  to {
+    transform: translateX(1px);
+  }
+}
+
+.heart {
+  opacity: 0;
+  transform-origin: center;
+  animation: heartPop 1.15s ease-out forwards;
+}
+
+@keyframes heartPop {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4) rotate(-8deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80px) scale(1.25) rotate(8deg);
+  }
+}
+
+/* ------------------------------------------------------------------ */
 
 @media (prefers-reduced-motion: reduce) {
-  .cat.is-petting {
+  .cat .blink,
+  .cat .breath,
+  .cat .tailIdle,
+  .cat.is-purring #body,
+  .cat.is-purring #head,
+  .cat.is-pet #tail,
+  .cat.is-pet #body,
+  .cat.is-belly #tail,
+  .cat .heart {
     animation: none;
   }
 
-  .cat,
-  .cat-body,
-  .cat-belly,
-  .cat-ear,
-  .cat-ear-inner,
-  .cat-tail,
-  .cat-shadow,
-  .cat-eye-white,
-  .cat-iris,
-  .cat-pupil,
-  .cat-lid ellipse {
-    animation: none;
+  .cat #head,
+  .cat #ears,
+  .cat #eyes,
+  .cat #lids,
+  .cat #cheeks,
+  .cat #nose,
+  .cat #mouth,
+  .cat #body,
+  .cat #pawL,
+  .cat #pawR {
     transition: none;
   }
-}
-
-
-/* 볼 — 가장자리가 몸통에 녹아들어야 붙여놓은 원처럼 안 보여요. */
-.cat-cheek {
-  fill: url(#catCheek);
-}
-
-/* 눈 테두리 — 눈매를 또렷하게 만들어요. */
-.cat-eye-rim {
-  fill: #6b4a22;
-  opacity: 0.55;
-}
-
-/* 몸 아래쪽 그늘 */
-.cat-shade {
-  fill: url(#catShade);
-  pointer-events: none;
-}
-
-/* 수염이 난 자리의 점 */
-.cat-dots circle {
-  fill: var(--cat-fur-dark);
-  opacity: 0.45;
-}
-
-.cat-nose-line {
-  fill: none;
-  stroke: #b0616f;
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  opacity: 0.7;
 }

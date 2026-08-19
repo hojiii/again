@@ -17,6 +17,10 @@ export interface VisitContextValue {
   pokeNose: () => void;
   /** 쓰다듬었을 때의 대사를 띄우고 도감에 담아요. */
   pet: () => void;
+  /** 배를 문질렀을 때의 대사를 띄우고 도감에 담아요. */
+  rubBelly: () => void;
+  /** 앞발을 눌렀을 때의 대사를 띄우고 도감에 담아요. */
+  pressPaw: () => void;
 }
 
 export const VisitCtx = createContext<VisitContextValue | null>(null);

@@ -141,6 +141,26 @@ const PET: Line[] = [
   { id: "e6", text: "손 치워. 아니 두고.", mood: "neutral" },
 ];
 
+/** 배를 문질렀을 때 나오는 말이에요. */
+const BELLY: Line[] = [
+  { id: "b_1", text: "거긴 반칙인데.", mood: "happy" },
+  { id: "b_2", text: "…항복.", mood: "happy" },
+  { id: "b_3", text: "이러면 못 일어나.", mood: "happy" },
+  { id: "b_4", text: "딱 십 분만 더.", mood: "happy" },
+  { id: "b_5", text: "네가 이겼다니까.", mood: "neutral" },
+  { id: "b_6", text: "(배 내놓고 뻗음)", mood: "dead" },
+];
+
+/** 발바닥을 눌렀을 때 나오는 말이에요. */
+const PAW: Line[] = [
+  { id: "w1", text: "발 놔.", mood: "annoyed" },
+  { id: "w2", text: "젤리는 비싸.", mood: "neutral" },
+  { id: "w3", text: "한 번에 하나만.", mood: "annoyed" },
+  { id: "w4", text: "그거 누른다고 소리 안 나.", mood: "bored" },
+  { id: "w5", text: "말랑하지? 알아.", mood: "happy" },
+  { id: "w6", text: "손 시려우면 말하고.", mood: "neutral" },
+];
+
 /**
  * 총 방문 횟수 기념 대사예요.
  *
@@ -161,6 +181,8 @@ export const ALL_LINES: Line[] = [
   ...TREAT,
   ...POKE,
   ...PET,
+  ...BELLY,
+  ...PAW,
   ...SECOND,
   ...BORED,
   ...ANNOYED,
@@ -245,6 +267,16 @@ export function pickPetLine(seenIds: string[] = [], seed: number = Date.now()): 
   return pickUnheardFirst(PET, seenIds, seed);
 }
 
+/** 배를 문질렀을 때 나올 말을 골라요. */
+export function pickBellyLine(seenIds: string[] = [], seed: number = Date.now()): Line {
+  return pickUnheardFirst(BELLY, seenIds, seed);
+}
+
+/** 발바닥을 눌렀을 때 나올 말을 골라요. */
+export function pickPawLine(seenIds: string[] = [], seed: number = Date.now()): Line {
+  return pickUnheardFirst(PAW, seenIds, seed);
+}
+
 /** 아직 못 들은 것부터 고르고, 다 들었으면 그중에서 아무거나 골라요. */
 function pickUnheardFirst(lines: Line[], seenIds: string[], seed: number): Line {
   const unheard = lines.filter((line) => !seenIds.includes(line.id));
@@ -269,7 +301,9 @@ export const LINE_GROUPS: { title: string; hint: string; lines: Line[] }[] = [
   { title: "새벽", hint: "새벽 2시에서 6시 사이 첫 방문에 나와요", lines: LATE_NIGHT },
   { title: "간식", hint: "간식을 주면 들을 수 있어요", lines: TREAT },
   { title: "코 찌르기", hint: "뚱냥이 코를 누르면 나와요", lines: POKE },
-  { title: "쓰다듬기", hint: "뚱냥이를 문지르면 나와요", lines: PET },
+  { title: "쓰다듬기", hint: "머리를 좌우로 문지르면 나와요", lines: PET },
+  { title: "배 문지르기", hint: "배를 문지르면 나와요", lines: BELLY },
+  { title: "발바닥", hint: "앞발을 누르면 나와요", lines: PAW },
   {
     title: "기념일",
     hint: "정해진 방문 횟수에 딱 맞춰야 나와요",
