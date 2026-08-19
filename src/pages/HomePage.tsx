@@ -8,10 +8,12 @@
 
 import { BannerSlot } from "../components/BannerSlot";
 import { Cat } from "../components/Cat";
+import { LyingCat } from "../components/LyingCat";
 import { useAdFree } from "../hooks/useAdFree";
 import { LIVE_REWARDED_AD_GROUP_ID, useRewardedAd } from "../hooks/useRewardedAd";
 import { useVisit } from "../hooks/useVisit";
 import { TOTAL_LINE_COUNT, hasUnheardTreat } from "../lib/lines";
+import { isFlopped } from "../lib/visits";
 import "./HomePage.css";
 
 /** 오늘 몇 번 왔는지에 붙는 한 줄 논평이에요. */
@@ -43,13 +45,26 @@ export function HomePage() {
   return (
     <main className="page">
       <div className="stage">
-        <Cat
-          mood={line.mood}
-          onPokeNose={pokeNose}
-          onPet={pet}
-          onBellyRub={rubBelly}
-          onPawPress={pressPaw}
-        />
+        {/*
+          서른 번을 넘기면 앉은 자세를 버리고 드러누워요. 만지는 규칙은 두 자세가
+          같아서 넘기는 콜백도 같아요.
+        */}
+        {isFlopped(state.todayCount) ? (
+          <LyingCat
+            onPokeNose={pokeNose}
+            onPet={pet}
+            onBellyRub={rubBelly}
+            onPawPress={pressPaw}
+          />
+        ) : (
+          <Cat
+            mood={line.mood}
+            onPokeNose={pokeNose}
+            onPet={pet}
+            onBellyRub={rubBelly}
+            onPawPress={pressPaw}
+          />
+        )}
 
         <p className="speech" key={line.id}>
           {line.text}

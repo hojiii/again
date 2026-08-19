@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EMPTY_STATE, dayKey, registerVisit, type VisitState } from "./visits";
+import { EMPTY_STATE, dayKey, isFlopped, registerVisit, type VisitState } from "./visits";
 import { ALL_LINES, LINE_GROUPS, hasUnheardTreat, pickLine, pickTreatLine } from "./lines";
 
 /** 낮 시간으로 고정해요. 새벽 대사가 끼어들면 방문 횟수 검증이 흐려져요. */
@@ -143,5 +143,18 @@ describe("pickTreatLine", () => {
 
     expect(hasUnheardTreat([])).toBe(true);
     expect(hasUnheardTreat(allTreatIds)).toBe(false);
+  });
+});
+
+describe("isFlopped", () => {
+  it("서른 번째부터 드러누워요", () => {
+    expect(isFlopped(29)).toBe(false);
+    expect(isFlopped(30)).toBe(true);
+    expect(isFlopped(120)).toBe(true);
+  });
+
+  it("몇 번 안 열었으면 앉아 있어요", () => {
+    expect(isFlopped(0)).toBe(false);
+    expect(isFlopped(15)).toBe(false);
   });
 });

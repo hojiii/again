@@ -107,6 +107,19 @@ export function registerVisit(
   };
 }
 
+/**
+ * 이 횟수를 넘기면 아예 드러누워요.
+ *
+ * 대사는 열여섯 번째부터 이미 포기한 톤인데, 앉은 채로 눈만 감아서는 그게
+ * 잘 안 보여요. 서른 번을 넘기면 그림 자체를 누운 자세로 바꿔요.
+ */
+export const FLOP_AT = 30;
+
+/** 오늘 너무 많이 열어서 드러누울 차례인지예요. */
+export function isFlopped(todayCount: number): boolean {
+  return todayCount >= FLOP_AT;
+}
+
 /** "3번째" 처럼 읽히게 붙여요. */
 export function ordinal(count: number): string {
   return `${count.toLocaleString("ko-KR")}번째`;
