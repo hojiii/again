@@ -113,6 +113,35 @@ const TREAT: Line[] = [
 ];
 
 /**
+ * 코를 눌렀을 때 나오는 말이에요.
+ *
+ * 얼굴이 눌리는 동안 짧게 뜨는 말이라 한 문장을 넘기지 않아요.
+ */
+const POKE: Line[] = [
+  { id: "p1", text: "야.", mood: "annoyed" },
+  { id: "p2", text: "코 만지지 마.", mood: "annoyed" },
+  { id: "p3", text: "숨 막혀.", mood: "annoyed" },
+  { id: "p4", text: "그거 누르면 뭐 나와?", mood: "bored" },
+  { id: "p5", text: "한 번만 더 해봐.", mood: "annoyed" },
+  { id: "p6", text: "…(참는 중)", mood: "dead" },
+];
+
+/**
+ * 쓰다듬었을 때 나오는 말이에요.
+ *
+ * 이 앱에서 뚱냥이가 티 나게 좋아하는 유일한 순간이에요. 그래도 솔직하게
+ * 좋다고는 안 해요.
+ */
+const PET: Line[] = [
+  { id: "e1", text: "…계속해.", mood: "happy" },
+  { id: "e2", text: "(그르릉)", mood: "happy" },
+  { id: "e3", text: "거기 말고 턱.", mood: "neutral" },
+  { id: "e4", text: "나쁘지 않네.", mood: "happy" },
+  { id: "e5", text: "이건 봐준다.", mood: "happy" },
+  { id: "e6", text: "손 치워. 아니 두고.", mood: "neutral" },
+];
+
+/**
  * 총 방문 횟수 기념 대사예요.
  *
  * 정확히 그 번째에 왔을 때만 나와서, 도감에서 제일 채우기 어려운 칸이에요.
@@ -130,6 +159,8 @@ const MILESTONES: { at: number; line: Line }[] = [
 export const ALL_LINES: Line[] = [
   ...FIRST,
   ...TREAT,
+  ...POKE,
+  ...PET,
   ...SECOND,
   ...BORED,
   ...ANNOYED,
@@ -204,6 +235,23 @@ export function pickTreatLine(seenIds: string[] = [], seed: number = Date.now())
   return pool[seed % pool.length];
 }
 
+/** 코를 눌렀을 때 나올 말을 골라요. 못 들은 말을 먼저 줘요. */
+export function pickPokeLine(seenIds: string[] = [], seed: number = Date.now()): Line {
+  return pickUnheardFirst(POKE, seenIds, seed);
+}
+
+/** 쓰다듬었을 때 나올 말을 골라요. 못 들은 말을 먼저 줘요. */
+export function pickPetLine(seenIds: string[] = [], seed: number = Date.now()): Line {
+  return pickUnheardFirst(PET, seenIds, seed);
+}
+
+/** 아직 못 들은 것부터 고르고, 다 들었으면 그중에서 아무거나 골라요. */
+function pickUnheardFirst(lines: Line[], seenIds: string[], seed: number): Line {
+  const unheard = lines.filter((line) => !seenIds.includes(line.id));
+  const pool = unheard.length > 0 ? unheard : lines;
+  return pool[seed % pool.length];
+}
+
 /** 간식으로 들을 수 있는 말이 아직 남았는지예요. */
 export function hasUnheardTreat(seenIds: string[]): boolean {
   return TREAT.some((line) => !seenIds.includes(line.id));
@@ -220,6 +268,8 @@ export const LINE_GROUPS: { title: string; hint: string; lines: Line[] }[] = [
   { title: "오랜만", hint: "일주일 넘게 안 오다 오면 나와요", lines: COMEBACK },
   { title: "새벽", hint: "새벽 2시에서 6시 사이 첫 방문에 나와요", lines: LATE_NIGHT },
   { title: "간식", hint: "간식을 주면 들을 수 있어요", lines: TREAT },
+  { title: "코 찌르기", hint: "뚱냥이 코를 누르면 나와요", lines: POKE },
+  { title: "쓰다듬기", hint: "뚱냥이를 문지르면 나와요", lines: PET },
   {
     title: "기념일",
     hint: "정해진 방문 횟수에 딱 맞춰야 나와요",

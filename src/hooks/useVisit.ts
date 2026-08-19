@@ -13,6 +13,10 @@ export interface VisitContextValue {
   reset: () => void;
   /** 간식을 줘서 얻은 대사를 화면에 띄우고 도감에 담아요. */
   giveTreat: () => void;
+  /** 코를 눌렀을 때의 대사를 띄우고 도감에 담아요. */
+  pokeNose: () => void;
+  /** 쓰다듬었을 때의 대사를 띄우고 도감에 담아요. */
+  pet: () => void;
 }
 
 export const VisitCtx = createContext<VisitContextValue | null>(null);

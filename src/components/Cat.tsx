@@ -1,244 +1,338 @@
 /**
  * 캐릭터 "뚱냥이".
  *
- * 선화 대신 **볼륨이 있는 그림**으로 그려요. 그라데이션으로 몸의 둥근 면을 만들고,
- * 고등어태비 줄무늬와 흰 배, 눈 하이라이트를 넣어요. 사진 같은 실사는 SVG로
- * 불가능하지만, 빛과 그림자가 있으면 "그려 넣은 도형"에서는 확실히 벗어나요.
+ * 빵빵한 볼, 짧은 주둥이, 큰 눈, 작고 둥근 귀. 치즈 태비 단모종의 인상을 잡았어요.
+ * 잘생기게 그리지 않았어요. 살짝 심통난 얼굴이 이 앱의 톤과 맞아요.
  *
- * 자주 올수록 몸이 퍼지고 귀가 처지고 눈이 감겨요. 마지막엔 드러누워요.
+ * 사진처럼 털 한 올까지 그리는 건 SVG로 안 돼요. 대신 그라디언트로 볼륨을 만들고,
+ * 볼·눈·코의 비율과 수염 자국 같은 디테일로 인상을 맞춰요. path 를 수백 개 쓰면
+ * 사진에 가까워지겠지만 찌부와 쓰다듬기 애니메이션이 버벅여요.
+ *
+ * 만질 수 있어요. 코를 누르면 얼굴이 찌부되고, 몸을 문지르면 눈을 감아요.
+ * 3D 대신 SVG로 하는 건 번들 때문이에요 — three.js 하나가 앱 전체보다 커요.
+ * 찌부와 쓰다듬기 정도는 SVG 변형으로 충분히 표현돼요.
  */
 
+import { useEffect, useRef, useState } from "react";
 import type { Mood } from "../lib/lines";
 import "./Cat.css";
 
-/** 기분마다 몸 비율이 달라져요. 지칠수록 옆으로 퍼지고 낮아져요. */
-const BODY: Record<Mood, { rx: number; ry: number; cy: number }> = {
-  happy: { rx: 78, ry: 74, cy: 132 },
-  neutral: { rx: 82, ry: 71, cy: 135 },
-  bored: { rx: 88, ry: 66, cy: 140 },
-  annoyed: { rx: 95, ry: 60, cy: 146 },
-  dead: { rx: 108, ry: 44, cy: 162 },
+/**
+ * 기분마다 자세가 달라져요.
+ *
+ * 몸은 앉은 자세의 아래쪽 덩어리, 머리는 그 위에 얹힌 원이에요. 지칠수록 몸이
+ * 옆으로 퍼지고 머리가 몸에 파묻혀요 — 목이 짧아지면서 주저앉는 모양이에요.
+ */
+const POSE: Record<Mood, { bodyRx: number; bodyRy: number; bodyCy: number; headR: number; headCy: number }> = {
+  happy: { bodyRx: 74, bodyRy: 54, bodyCy: 176, headR: 58, headCy: 108 },
+  neutral: { bodyRx: 77, bodyRy: 53, bodyCy: 178, headR: 58, headCy: 112 },
+  bored: { bodyRx: 83, bodyRy: 50, bodyCy: 182, headR: 57, headCy: 120 },
+  annoyed: { bodyRx: 90, bodyRy: 46, bodyCy: 186, headR: 56, headCy: 130 },
+  dead: { bodyRx: 104, bodyRy: 36, bodyCy: 196, headR: 54, headCy: 152 },
 };
 
-/** 귀도 같이 처져요. */
-const EARS: Record<Mood, { left: string; right: string; innerL: string; innerR: string }> = {
-  happy: {
-    left: "M62 74 L52 22 L104 56 Z",
-    right: "M178 74 L188 22 L136 56 Z",
-    innerL: "M68 70 L61 38 L94 60 Z",
-    innerR: "M172 70 L179 38 L146 60 Z",
-  },
-  neutral: {
-    left: "M62 78 L50 30 L103 60 Z",
-    right: "M178 78 L190 30 L137 60 Z",
-    innerL: "M68 74 L59 45 L93 63 Z",
-    innerR: "M172 74 L181 45 L147 63 Z",
-  },
-  bored: {
-    left: "M58 86 L38 46 L98 70 Z",
-    right: "M182 86 L202 46 L142 70 Z",
-    innerL: "M65 82 L49 59 L90 72 Z",
-    innerR: "M175 82 L191 59 L150 72 Z",
-  },
-  annoyed: {
-    left: "M54 96 L26 68 L94 82 Z",
-    right: "M186 96 L214 68 L146 82 Z",
-    innerL: "M62 92 L40 76 L88 84 Z",
-    innerR: "M178 92 L200 76 L152 84 Z",
-  },
-  dead: {
-    left: "M48 122 L10 116 L90 106 Z",
-    right: "M192 122 L230 116 L150 106 Z",
-    innerL: "M56 118 L26 114 L84 108 Z",
-    innerR: "M184 118 L214 114 L156 108 Z",
-  },
+/** 눈이 얼마나 떠 있는지예요. 0이면 감은 거예요. */
+const OPENNESS: Record<Mood, number> = {
+  happy: 0.92,
+  neutral: 1,
+  bored: 0.62,
+  annoyed: 0.4,
+  dead: 0,
 };
 
-/** 눈 중심 좌표예요. 몸이 낮아지면 얼굴도 같이 내려가요. */
-const EYE_Y: Record<Mood, number> = {
-  happy: 122,
-  neutral: 125,
-  bored: 130,
-  annoyed: 137,
-  dead: 152,
-};
-
-function Eyes({ mood }: { mood: Mood }) {
-  const y = EYE_Y[mood];
-
-  if (mood === "happy") {
-    // 기분 좋을 때 고양이 눈은 반달로 접혀요.
-    return (
-      <g className="cat-line">
-        <path d={`M74 ${y} q13 -15 26 0`} />
-        <path d={`M140 ${y} q13 -15 26 0`} />
-      </g>
-    );
-  }
-
-  if (mood === "dead") {
-    return (
-      <g className="cat-line">
-        <path d={`M74 ${y} q13 11 26 0`} />
-        <path d={`M140 ${y} q13 11 26 0`} />
-      </g>
-    );
-  }
-
-  // 뜬 눈 — 홍채, 세로 동공, 하이라이트를 겹쳐요.
-  const openness = mood === "neutral" ? 1 : mood === "bored" ? 0.66 : 0.4;
-  const ry = 15 * openness;
-  const pupilRy = 11 * openness;
-
-  return (
-    <g>
-      {[87, 153].map((cx) => (
-        <g key={cx}>
-          <ellipse className="cat-eye-white" cx={cx} cy={y} rx="15" ry={ry} />
-          <ellipse className="cat-iris" cx={cx} cy={y} rx="12.5" ry={ry * 0.92} />
-          <ellipse className="cat-pupil" cx={cx} cy={y} rx="4.4" ry={pupilRy} />
-          <circle className="cat-glint" cx={cx - 4.5} cy={y - ry * 0.35} r={2.6 * openness + 1} />
-          <circle className="cat-glint-sm" cx={cx + 5} cy={y + ry * 0.3} r={1.5 * openness} />
-        </g>
-      ))}
-
-      {/* 반쯤 감겼을 때 위 눈꺼풀을 덮어요. */}
-      {mood !== "neutral" && (
-        <g className="cat-lid">
-          <ellipse cx="87" cy={y - 15 - (1 - openness) * -13} rx="16" ry={15 * (1 - openness) + 2} />
-          <ellipse cx="153" cy={y - 15 - (1 - openness) * -13} rx="16" ry={15 * (1 - openness) + 2} />
-        </g>
-      )}
-    </g>
-  );
+interface Props {
+  mood: Mood;
+  size?: number;
+  /** 코를 눌렀을 때 불려요. */
+  onPokeNose?: () => void;
+  /** 몸을 문질렀을 때 불려요. 연속으로 문질러도 자주 불리지 않아요. */
+  onPet?: () => void;
 }
 
-function Muzzle({ mood }: { mood: Mood }) {
-  const y = EYE_Y[mood] + (mood === "dead" ? 20 : 30);
+export function Cat({ mood, size = 260, onPokeNose, onPet }: Props) {
+  const [squished, setSquished] = useState(false);
+  const [petting, setPetting] = useState(false);
+
+  // 쓰다듬기는 손가락이 일정 거리 이상 움직였을 때만 쳐요. 그냥 탭한 걸
+  // 쓰다듬었다고 하면 코를 누르려다 빗나간 것까지 쓰다듬기가 돼요.
+  const strokeDistance = useRef(0);
+  const lastPoint = useRef<{ x: number; y: number } | null>(null);
+  const petCooldown = useRef(0);
+  const squishTimer = useRef<number | null>(null);
+  const petTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (squishTimer.current != null) window.clearTimeout(squishTimer.current);
+      if (petTimer.current != null) window.clearTimeout(petTimer.current);
+    };
+  }, []);
+
+  function pokeNose() {
+    setSquished(true);
+    if (squishTimer.current != null) window.clearTimeout(squishTimer.current);
+    squishTimer.current = window.setTimeout(() => setSquished(false), 420);
+    onPokeNose?.();
+  }
+
+  function handleMove(x: number, y: number) {
+    const last = lastPoint.current;
+    lastPoint.current = { x, y };
+    if (last == null) return;
+
+    strokeDistance.current += Math.hypot(x - last.x, y - last.y);
+    if (strokeDistance.current < 90) return;
+
+    strokeDistance.current = 0;
+
+    // 문지르는 내내 대사가 쏟아지면 정신없어요. 최소 간격을 둬요.
+    const now = Date.now();
+    if (now - petCooldown.current < 1400) return;
+    petCooldown.current = now;
+
+    setPetting(true);
+    if (petTimer.current != null) window.clearTimeout(petTimer.current);
+    petTimer.current = window.setTimeout(() => setPetting(false), 1200);
+    onPet?.();
+  }
+
+  function endStroke() {
+    lastPoint.current = null;
+    strokeDistance.current = 0;
+  }
+
+  const pose = POSE[mood];
+  const rx = pose.bodyRx;
+  const ry = pose.bodyRy;
+  const cy = pose.bodyCy;
+
+  // 코를 누르면 머리만 눌려요. 몸까지 같이 움직이면 찌부가 아니라 통째로 흔들려요.
+  const headRx = squished ? pose.headR * 1.12 : pose.headR;
+  const headRy = squished ? pose.headR * 0.86 : pose.headR;
+  const headCy = squished ? pose.headCy + 7 : pose.headCy;
+
+  // 쓰다듬는 중에는 기분과 상관없이 눈을 가늘게 떠요.
+  const openness = petting ? 0.15 : OPENNESS[mood];
+  const eyeY = headCy - headRy * 0.1;
+  const noseY = eyeY + 30;
 
   return (
-    <g>
-      {/* 주둥이 두 덩이 */}
-      <ellipse className="cat-muzzle" cx="107" cy={y + 6} rx="20" ry="14" />
-      <ellipse className="cat-muzzle" cx="133" cy={y + 6} rx="20" ry="14" />
-
-      {/* 코 */}
-      <path className="cat-nose" d={`M111 ${y - 4} h18 l-9 10 z`} />
-      <path className="cat-nose-glint" d={`M114 ${y - 2} h7`} />
-
-      {/* 입 */}
-      <g className="cat-line cat-mouth">
-        {mood === "dead" ? (
-          <path d={`M120 ${y + 6} v3`} />
-        ) : (
-          <>
-            <path d={`M120 ${y + 6} v4`} />
-            <path d={`M120 ${y + 10} q-9 8 -16 1`} />
-            <path d={`M120 ${y + 10} q9 8 16 1`} />
-          </>
-        )}
-      </g>
-
-      {/* 수염 — 주둥이 옆에서 뻗어요 */}
-      <g className="cat-whisker">
-        <path d={`M84 ${y + 1} q-30 -6 -46 -12`} />
-        <path d={`M84 ${y + 7} q-32 1 -50 2`} />
-        <path d={`M84 ${y + 13} q-30 8 -46 16`} />
-        <path d={`M156 ${y + 1} q30 -6 46 -12`} />
-        <path d={`M156 ${y + 7} q32 1 50 2`} />
-        <path d={`M156 ${y + 13} q30 8 46 16`} />
-      </g>
-    </g>
-  );
-}
-
-export function Cat({ mood }: { mood: Mood }) {
-  const body = BODY[mood];
-  const ears = EARS[mood];
-  const top = body.cy - body.ry;
-
-  return (
-    <svg className={`cat is-${mood}`} viewBox="0 0 240 230" role="img" aria-label="뚱냥이">
+    <svg
+      className={[
+        "cat",
+        `is-${mood}`,
+        squished ? "is-squished" : "",
+        petting ? "is-petting" : "",
+      ].filter(Boolean).join(" ")}
+      width={size}
+      height={size * 0.92}
+      viewBox="0 0 260 240"
+      role="img"
+      aria-label="뚱냥이"
+      onPointerDown={(event) => {
+        lastPoint.current = { x: event.clientX, y: event.clientY };
+        strokeDistance.current = 0;
+      }}
+      onPointerMove={(event) => {
+        if (event.buttons === 0 && event.pointerType === "mouse") return;
+        handleMove(event.clientX, event.clientY);
+      }}
+      onPointerUp={endStroke}
+      onPointerLeave={endStroke}
+    >
       <defs>
-        {/* 몸 볼륨 — 왼쪽 위에서 빛이 들어와요. */}
-        <radialGradient id="catFur" cx="38%" cy="28%" r="78%">
+        {/* 몸통 볼륨 — 왼쪽 위에서 빛이 들어와요. */}
+        <radialGradient id="catFur" cx="36%" cy="24%" r="82%">
           <stop offset="0%" stopColor="var(--cat-fur-light)" />
-          <stop offset="62%" stopColor="var(--cat-fur)" />
+          <stop offset="52%" stopColor="var(--cat-fur)" />
           <stop offset="100%" stopColor="var(--cat-fur-dark)" />
         </radialGradient>
 
-        <radialGradient id="catBelly" cx="50%" cy="35%" r="70%">
+        {/* 얼굴 가운데와 가슴은 크림색으로 빠져요. 사진 속 치즈냥의 특징이에요. */}
+        <radialGradient id="catBelly" cx="50%" cy="30%" r="74%">
           <stop offset="0%" stopColor="var(--cat-belly-light)" />
           <stop offset="100%" stopColor="var(--cat-belly)" />
         </radialGradient>
 
-        <linearGradient id="catEarInner" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--cat-ear-inner-light)" />
-          <stop offset="100%" stopColor="var(--cat-ear-inner)" />
+        {/* 볼 — 가장자리로 갈수록 몸통 색에 녹아들어요. */}
+        <radialGradient id="catCheek" cx="45%" cy="35%" r="70%">
+          <stop offset="0%" stopColor="var(--cat-belly-light)" />
+          <stop offset="70%" stopColor="var(--cat-belly)" />
+          <stop offset="100%" stopColor="var(--cat-belly)" stopOpacity="0" />
+        </radialGradient>
+
+        {/* 눈동자 — 위가 어둡고 아래가 밝아야 구슬처럼 보여요. */}
+        <radialGradient id="catIris" cx="50%" cy="62%" r="62%">
+          <stop offset="0%" stopColor="var(--cat-iris-light)" />
+          <stop offset="100%" stopColor="var(--cat-iris)" />
+        </radialGradient>
+
+        {/* 몸 아래쪽 그늘 */}
+        <linearGradient id="catShade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="55%" stopColor="#000" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0.13" />
         </linearGradient>
 
-        {/* 몸 밖으로 삐져나온 줄무늬를 잘라내요. */}
         <clipPath id="catBodyClip">
-          <ellipse cx="120" cy={body.cy} rx={body.rx} ry={body.ry} />
+          <ellipse cx="130" cy={cy} rx={rx} ry={ry} />
         </clipPath>
       </defs>
 
       {/* 바닥 그림자 */}
-      <ellipse className="cat-shadow" cx="120" cy={body.cy + body.ry - 4} rx={body.rx * 0.88} ry="11" />
+      <ellipse className="cat-shadow" cx="130" cy={cy + ry - 2} rx={rx * 0.94} ry="12" />
 
-      {/* 꼬리 */}
+      {/* 꼬리 — 몸 옆을 감아 앞으로 나와요 */}
       <path
         className="cat-tail"
         d={
           mood === "dead"
-            ? "M222 176 q22 4 14 18"
-            : `M${120 + body.rx - 6} ${body.cy + 18} q40 -8 30 -52`
+            ? `M${130 + rx - 6} ${cy + 6} q46 10 30 28`
+            : `M${130 + rx - 8} ${cy + 10} q50 -2 34 -44`
         }
       />
 
-      {/* 귀 */}
-      <path className="cat-ear" d={ears.left} />
-      <path className="cat-ear" d={ears.right} />
-      <path className="cat-ear-inner" d={ears.innerL} />
-      <path className="cat-ear-inner" d={ears.innerR} />
+      {/* 몸 — 앉은 자세의 아래쪽 덩어리 */}
+      <ellipse className="cat-body" cx="130" cy={cy} rx={rx} ry={ry} />
 
-      {/* 몸 */}
-      <ellipse className="cat-body" cx="120" cy={body.cy} rx={body.rx} ry={body.ry} />
+      {/* 가슴의 크림색 */}
+      <ellipse className="cat-belly" cx="130" cy={cy + ry * 0.2} rx={rx * 0.52} ry={ry * 0.72} />
 
-      {/* 배 */}
-      <ellipse
-        className="cat-belly"
-        cx="120"
-        cy={body.cy + body.ry * 0.36}
-        rx={body.rx * 0.52}
-        ry={body.ry * 0.5}
-      />
-
-      {/* 태비 줄무늬 — 이마와 등에만 얹어요. */}
+      {/* 등 줄무늬 */}
       <g className="cat-stripes" clipPath="url(#catBodyClip)">
-        <path d={`M120 ${top + 4} v22`} />
-        <path d={`M100 ${top + 10} q4 12 8 20`} />
-        <path d={`M140 ${top + 10} q-4 12 -8 20`} />
-        <path d={`M${120 - body.rx * 0.82} ${body.cy - 6} q16 6 26 4`} />
-        <path d={`M${120 + body.rx * 0.82} ${body.cy - 6} q-16 6 -26 4`} />
-        <path d={`M${120 - body.rx * 0.78} ${body.cy + 16} q16 6 26 4`} />
-        <path d={`M${120 + body.rx * 0.78} ${body.cy + 16} q-16 6 -26 4`} />
+        <path d={`M${130 - rx * 0.86} ${cy - 12} q20 8 30 6`} />
+        <path d={`M${130 + rx * 0.86} ${cy - 12} q-20 8 -30 6`} />
+        <path d={`M${130 - rx * 0.8} ${cy + 10} q18 8 28 6`} />
+        <path d={`M${130 + rx * 0.8} ${cy + 10} q-18 8 -28 6`} />
       </g>
 
-      {/* 앞발 */}
+      <ellipse className="cat-shade" cx="130" cy={cy} rx={rx} ry={ry} clipPath="url(#catBodyClip)" />
+
+      {/* 앞발 — 사진처럼 몸 앞으로 모아요 */}
       <g className="cat-paws">
-        <ellipse cx={120 - body.rx * 0.42} cy={body.cy + body.ry - 8} rx="21" ry="12" />
-        <ellipse cx={120 + body.rx * 0.42} cy={body.cy + body.ry - 8} rx="21" ry="12" />
-        <g className="cat-toe">
-          <path d={`M${120 - body.rx * 0.42 - 6} ${body.cy + body.ry - 14} v7`} />
-          <path d={`M${120 - body.rx * 0.42 + 6} ${body.cy + body.ry - 14} v7`} />
-          <path d={`M${120 + body.rx * 0.42 - 6} ${body.cy + body.ry - 14} v7`} />
-          <path d={`M${120 + body.rx * 0.42 + 6} ${body.cy + body.ry - 14} v7`} />
-        </g>
+        {[-1, 1].map((side) => (
+          <g key={side}>
+            <ellipse cx={130 + side * rx * 0.38} cy={cy + ry - 6} rx="24" ry="13" />
+            <g className="cat-toe">
+              <path d={`M${130 + side * rx * 0.38 - 8} ${cy + ry - 13} v8`} />
+              <path d={`M${130 + side * rx * 0.38 + 1} ${cy + ry - 14} v9`} />
+              <path d={`M${130 + side * rx * 0.38 + 10} ${cy + ry - 13} v8`} />
+            </g>
+          </g>
+        ))}
       </g>
 
-      <Eyes mood={mood} />
-      <Muzzle mood={mood} />
+      {/* 귀 — 머리 위에 작고 둥글게 */}
+      {[-1, 1].map((side) => {
+        const ex = 130 + side * headRx * 0.66;
+        const ey = headCy - headRy * 0.66;
+        return (
+          <g key={side}>
+            <path
+              className="cat-ear"
+              d={`M${ex} ${ey + 16} q${side * -4} -24 ${side * 15} -27 q${side * 19} -2 ${side * 20} 19 q${side * -15} 11 ${side * -35} 8z`}
+            />
+            <path
+              className="cat-ear-inner"
+              d={`M${ex + side * 2} ${ey + 13} q${side * -2} -15 ${side * 10} -18 q${side * 12} -1 ${side * 13} 12 q${side * -9} 6 ${side * -23} 6z`}
+            />
+          </g>
+        );
+      })}
+
+      {/* 머리 */}
+      <ellipse className="cat-head" cx="130" cy={headCy} rx={headRx} ry={headRy} />
+
+      {/* 이마 M자 태비 */}
+      <g className="cat-stripes">
+        <path d={`M130 ${headCy - headRy * 0.86} v18`} />
+        <path d={`M${130 - 14} ${headCy - headRy * 0.82} q3 10 5 17`} />
+        <path d={`M${130 + 14} ${headCy - headRy * 0.82} q-3 10 -5 17`} />
+        <path d={`M${130 - 28} ${headCy - headRy * 0.68} q4 9 8 14`} />
+        <path d={`M${130 + 28} ${headCy - headRy * 0.68} q-4 9 -8 14`} />
+      </g>
+
+      {/* 볼 — 이 품종의 인상을 만드는 부분이에요 */}
+      <ellipse className="cat-cheek" cx={130 - 32} cy={noseY} rx="30" ry="24" />
+      <ellipse className="cat-cheek" cx={130 + 32} cy={noseY} rx="30" ry="24" />
+
+      {/* 눈 */}
+      {openness <= 0.02 ? (
+        <g className="cat-line">
+          <path d={`M${130 - 36} ${eyeY} q14 12 28 0`} />
+          <path d={`M${130 + 8} ${eyeY} q14 12 28 0`} />
+        </g>
+      ) : (
+        <g>
+          {[130 - 22, 130 + 22].map((cx) => (
+            <g key={cx}>
+              <ellipse className="cat-eye-rim" cx={cx} cy={eyeY} rx="18" ry={18 * openness} />
+              <ellipse className="cat-eye-white" cx={cx} cy={eyeY} rx="16" ry={16 * openness} />
+              <ellipse className="cat-iris" cx={cx} cy={eyeY} rx="14" ry={14 * openness} />
+              <ellipse className="cat-pupil" cx={cx} cy={eyeY} rx="7" ry={12 * openness} />
+              <circle className="cat-glint" cx={cx - 5.5} cy={eyeY - 5.5 * openness} r={3.6 * openness + 1} />
+              <circle className="cat-glint-sm" cx={cx + 5.5} cy={eyeY + 5.5 * openness} r={1.8 * openness} />
+            </g>
+          ))}
+          {openness < 0.95 && (
+            <g className="cat-lid">
+              <ellipse cx={130 - 22} cy={eyeY - 18} rx="19" ry={18 * (1 - openness) + 2} />
+              <ellipse cx={130 + 22} cy={eyeY - 18} rx="19" ry={18 * (1 - openness) + 2} />
+            </g>
+          )}
+        </g>
+      )}
+
+      {/* 코 */}
+      <path className="cat-nose" d={`M${130 - 8} ${noseY - 5} q8 -3 16 0 q-3 8 -8 11 q-5 -3 -8 -11z`} />
+      <path className="cat-nose-line" d={`M130 ${noseY + 6} v5`} />
+
+      {/* 입 */}
+      <g className="cat-line cat-mouth">
+        {mood === "dead" ? (
+          <path d={`M${130 - 7} ${noseY + 12} h14`} />
+        ) : (
+          <>
+            <path d={`M130 ${noseY + 11} q-10 8 -18 1`} />
+            <path d={`M130 ${noseY + 11} q10 8 18 1`} />
+          </>
+        )}
+      </g>
+
+      {/* 수염 자국 점 */}
+      <g className="cat-dots">
+        {[-1, 1].map((side) =>
+          [0, 1, 2].map((row) => (
+            <circle
+              key={`${side}-${row}`}
+              cx={130 + side * (19 + (row % 2) * 8)}
+              cy={noseY + row * 6}
+              r="1.5"
+            />
+          )),
+        )}
+      </g>
+
+      {/* 수염 */}
+      <g className="cat-whisker">
+        <path d={`M${130 - 42} ${noseY - 2} q-32 -8 -50 -15`} />
+        <path d={`M${130 - 42} ${noseY + 6} q-34 0 -54 1`} />
+        <path d={`M${130 - 42} ${noseY + 14} q-32 9 -48 17`} />
+        <path d={`M${130 + 42} ${noseY - 2} q32 -8 50 -15`} />
+        <path d={`M${130 + 42} ${noseY + 6} q34 0 54 1`} />
+        <path d={`M${130 + 42} ${noseY + 14} q32 9 48 17`} />
+      </g>
+
+      {/* 코를 정확히 짚기 어려우니 넉넉한 투명 원을 겹쳐요. */}
+      <circle
+        className="cat-nose-hit"
+        cx="130"
+        cy={noseY}
+        r="26"
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          pokeNose();
+        }}
+      />
     </svg>
   );
 }

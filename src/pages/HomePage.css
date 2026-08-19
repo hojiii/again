@@ -13,14 +13,37 @@
 }
 
 .speech {
+  position: relative;
   margin: 0;
-  font-size: 21px;
+  padding: 14px 20px;
+  border-radius: 20px;
+  background: var(--surface);
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.45;
   letter-spacing: -0.02em;
   color: var(--text);
   /* 대사가 바뀔 때마다 살짝 올라오면서 나타나요. */
   animation: speech-in 380ms ease both;
+}
+
+/* 말풍선 꼬리 — 고양이 쪽을 가리켜요. */
+.speech::after {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+.touch-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-weak);
 }
 
 @keyframes speech-in {

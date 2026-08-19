@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { VisitCtx } from "../hooks/useVisit";
-import { pickTreatLine, type Line } from "../lib/lines";
+import { pickPetLine, pickPokeLine, pickTreatLine, type Line } from "../lib/lines";
 import { EMPTY_STATE, registerVisit, type VisitState } from "../lib/visits";
 import { STORAGE_KEYS, loadJson, saveJson } from "../lib/storage";
 
@@ -41,23 +41,31 @@ export function VisitProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  const giveTreat = useCallback(() => {
-    // 아직 안 들은 말을 우선으로 골라요. 최신 목록을 써야 해서 setState 안에서 정해요.
+  /**
+   * 고른 대사를 화면에 띄우고 도감에 담아요.
+   *
+   * 최신 목록으로 골라야 이미 들은 말이 또 나오지 않아서 setState 안에서 정해요.
+   */
+  const speak = useCallback((choose: (seenIds: string[]) => Line) => {
     setState((prev) => {
-      const treat = pickTreatLine(prev.seenLineIds);
-      setLine(treat);
+      const line = choose(prev.seenLineIds);
+      setLine(line);
 
-      if (prev.seenLineIds.includes(treat.id)) {
+      if (prev.seenLineIds.includes(line.id)) {
         setIsNewLine(false);
         return prev;
       }
 
-      const next = { ...prev, seenLineIds: [...prev.seenLineIds, treat.id] };
+      const next = { ...prev, seenLineIds: [...prev.seenLineIds, line.id] };
       setIsNewLine(true);
       void saveJson(STORAGE_KEYS.visit, next);
       return next;
     });
   }, []);
+
+  const giveTreat = useCallback(() => speak(pickTreatLine), [speak]);
+  const pokeNose = useCallback(() => speak(pickPokeLine), [speak]);
+  const pet = useCallback(() => speak(pickPetLine), [speak]);
 
   const reset = useCallback(() => {
     setState(EMPTY_STATE);
@@ -67,8 +75,8 @@ export function VisitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ state, loading, line, isNewLine, reset, giveTreat }),
-    [state, loading, line, isNewLine, reset, giveTreat],
+    () => ({ state, loading, line, isNewLine, reset, giveTreat, pokeNose, pet }),
+    [state, loading, line, isNewLine, reset, giveTreat, pokeNose, pet],
   );
 
   return <VisitCtx.Provider value={value}>{children}</VisitCtx.Provider>;

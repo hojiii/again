@@ -6,15 +6,24 @@
  */
 
 .cat {
+  /* 만질 수 있는 그림이에요. 드래그하면 브라우저가 이미지를 잡아채요. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+
   /* 치즈냥. 등은 진한 주황, 배는 크림색으로 빠져요. */
-  --cat-fur-light: #f8cd8d;
-  --cat-fur: #efa64f;
-  --cat-fur-dark: #b96f1d;
-  --cat-belly-light: #fffdf8;
-  --cat-belly: #f8e7cd;
-  --cat-ear-inner-light: #ffcdd2;
-  --cat-ear-inner: #f2a1a9;
-  --cat-stripe: #c2761c;
+  --cat-fur-light: #fbdba7;
+  --cat-fur: #eeae63;
+  --cat-fur-dark: #c07c30;
+  --cat-belly-light: #fffcf5;
+  --cat-belly: #f7e6cc;
+  --cat-ear-inner-light: #ffd3d6;
+  --cat-ear-inner: #eda8ac;
+  --cat-stripe: #c47c28;
+  /* 사진 속 눈은 초록보다 호박·갈색에 가까워요. */
+  --cat-iris-light: #d99a3f;
+  --cat-iris: #9c6320;
 
   width: 100%;
   max-width: 260px;
@@ -31,12 +40,46 @@
   filter: saturate(0.25) brightness(0.97);
 }
 
-.cat-body {
+.cat-body,
+.cat-head {
   fill: url(#catFur);
   transition:
     rx 420ms ease,
     ry 420ms ease,
     cy 420ms ease;
+}
+
+/* 머리에 살짝 그늘을 줘서 몸에 얹힌 게 보이게 해요. */
+.cat-head {
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* 코를 누르면 짧고 탄력 있게 눌렸다 돌아와요. */
+.cat.is-squished .cat-head {
+  transition:
+    rx 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    ry 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    cy 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cat-nose-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+/* 쓰다듬는 동안 몸이 살짝 들썩여요. */
+.cat.is-petting {
+  animation: cat-purr 420ms ease-in-out infinite;
+}
+
+@keyframes cat-purr {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 .cat-belly {
@@ -100,7 +143,7 @@
 }
 
 .cat-iris {
-  fill: #7ba63f;
+  fill: url(#catIris);
   transition: ry 320ms ease;
 }
 
@@ -177,6 +220,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cat.is-petting {
+    animation: none;
+  }
+
   .cat,
   .cat-body,
   .cat-belly,
@@ -191,4 +238,36 @@
     animation: none;
     transition: none;
   }
+}
+
+
+/* 볼 — 가장자리가 몸통에 녹아들어야 붙여놓은 원처럼 안 보여요. */
+.cat-cheek {
+  fill: url(#catCheek);
+}
+
+/* 눈 테두리 — 눈매를 또렷하게 만들어요. */
+.cat-eye-rim {
+  fill: #6b4a22;
+  opacity: 0.55;
+}
+
+/* 몸 아래쪽 그늘 */
+.cat-shade {
+  fill: url(#catShade);
+  pointer-events: none;
+}
+
+/* 수염이 난 자리의 점 */
+.cat-dots circle {
+  fill: var(--cat-fur-dark);
+  opacity: 0.45;
+}
+
+.cat-nose-line {
+  fill: none;
+  stroke: #b0616f;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  opacity: 0.7;
 }
