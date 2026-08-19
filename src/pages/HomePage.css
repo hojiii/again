@@ -1,0 +1,126 @@
+/**
+ * 메인 화면 스타일.
+ */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  min-height: 320px;
+  padding: 24px 0 8px;
+  text-align: center;
+}
+
+.speech {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  /* 대사가 바뀔 때마다 살짝 올라오면서 나타나요. */
+  animation: speech-in 380ms ease both;
+}
+
+@keyframes speech-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.new-badge {
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--accent-weak);
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 600;
+  animation: speech-in 520ms ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speech,
+  .new-badge {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 오늘의 숫자들                                                        */
+/* ------------------------------------------------------------------ */
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  grid-template-areas:
+    "label value"
+    "label note";
+  align-items: baseline;
+  gap: 2px 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.fact-label {
+  grid-area: label;
+  align-self: center;
+  font-size: 13px;
+  color: var(--text-weak);
+}
+
+.fact-value {
+  grid-area: value;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fact-note {
+  grid-area: note;
+  font-size: 13px;
+  color: var(--text-weak);
+}
+
+/* ------------------------------------------------------------------ */
+/* 간식 주기                                                            */
+/* ------------------------------------------------------------------ */
+
+/*
+ * 광고를 보는 버튼이라 서비스 버튼처럼 생기면 안 돼요. 화면의 주요 동작(탭 이동)과
+ * 색을 다르게 두고, 배너와도 멀찍이 떨어진 캐릭터 바로 아래에 둬요.
+ */
+.treat-button {
+  margin-top: 4px;
+  padding: 11px 20px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-sub);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.treat-button:active {
+  background: var(--bg);
+}
+
+.treat-button:disabled {
+  opacity: 0.6;
+}

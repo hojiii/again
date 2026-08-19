@@ -1,0 +1,82 @@
+/**
+ * 도감 화면 스타일.
+ */
+
+.dex-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dex-count {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--accent-dark);
+}
+
+.dex-total {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-weak);
+}
+
+.dex-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.dex-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 500ms ease;
+}
+
+.dex-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dex-group-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-weak);
+}
+
+.dex-hint {
+  margin-top: 2px;
+}
+
+.dex-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dex-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 15px;
+  color: var(--text);
+}
+
+/* 아직 못 들은 말은 글자를 지우고 자리만 남겨요. */
+.dex-item.is-locked {
+  color: var(--text-weak);
+  letter-spacing: 0.2em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dex-bar-fill {
+    transition: none;
+  }
+}

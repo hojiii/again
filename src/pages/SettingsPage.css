@@ -1,0 +1,21 @@
+/**
+ * 설정 화면 스타일.
+ */
+
+.settings-cta {
+  margin-top: 4px;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-actions .btn {
+  flex: 1;
+}
+
+.btn-danger {
+  background: var(--red);
+  color: #fff;
+}

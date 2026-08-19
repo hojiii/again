@@ -1,0 +1,194 @@
+/**
+ * 뚱냥이 스타일.
+ *
+ * 색은 고등어태비를 기준으로 잡았어요. 앱의 보라 계열과 섞으면 캐릭터가 UI처럼
+ * 보여서, 털은 실제 고양이 색으로 두고 배경만 앱 색을 써요.
+ */
+
+.cat {
+  /* 치즈냥. 등은 진한 주황, 배는 크림색으로 빠져요. */
+  --cat-fur-light: #f8cd8d;
+  --cat-fur: #efa64f;
+  --cat-fur-dark: #b96f1d;
+  --cat-belly-light: #fffdf8;
+  --cat-belly: #f8e7cd;
+  --cat-ear-inner-light: #ffcdd2;
+  --cat-ear-inner: #f2a1a9;
+  --cat-stripe: #c2761c;
+
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  /* 지칠수록 색이 빠지는 건 filter 하나로 처리해요. 도형마다 색을 바꾸지 않아요. */
+  transition: filter 420ms ease;
+}
+
+.cat.is-annoyed {
+  filter: saturate(0.6);
+}
+
+.cat.is-dead {
+  filter: saturate(0.25) brightness(0.97);
+}
+
+.cat-body {
+  fill: url(#catFur);
+  transition:
+    rx 420ms ease,
+    ry 420ms ease,
+    cy 420ms ease;
+}
+
+.cat-belly {
+  fill: url(#catBelly);
+  transition:
+    rx 420ms ease,
+    ry 420ms ease,
+    cy 420ms ease;
+}
+
+.cat-ear {
+  fill: var(--cat-fur);
+  transition: d 420ms ease;
+}
+
+.cat-ear-inner {
+  fill: url(#catEarInner);
+  transition: d 420ms ease;
+}
+
+.cat-tail {
+  fill: none;
+  stroke: var(--cat-fur);
+  stroke-width: 17;
+  stroke-linecap: round;
+  transition: d 420ms ease;
+}
+
+.cat-shadow {
+  fill: #000;
+  opacity: 0.07;
+  transition:
+    rx 420ms ease,
+    cy 420ms ease;
+}
+
+.cat-stripes path {
+  fill: none;
+  stroke: var(--cat-stripe);
+  stroke-width: 7;
+  stroke-linecap: round;
+  opacity: 0.34;
+}
+
+.cat-paws ellipse {
+  fill: var(--cat-belly);
+}
+
+.cat-toe path {
+  fill: none;
+  stroke: #b96f1d;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.45;
+}
+
+/* 눈 */
+.cat-eye-white {
+  fill: #fdfdfe;
+  transition: ry 320ms ease;
+}
+
+.cat-iris {
+  fill: #7ba63f;
+  transition: ry 320ms ease;
+}
+
+.cat-pupil {
+  fill: #1d2430;
+  transition: ry 320ms ease;
+}
+
+.cat-glint {
+  fill: #ffffff;
+  opacity: 0.95;
+}
+
+.cat-glint-sm {
+  fill: #ffffff;
+  opacity: 0.6;
+}
+
+.cat-lid ellipse {
+  fill: var(--cat-fur);
+  transition: ry 320ms ease;
+}
+
+.cat-line path {
+  fill: none;
+  stroke: #8f5310;
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+.cat-mouth path {
+  stroke-width: 4;
+}
+
+.cat-muzzle {
+  fill: var(--cat-belly-light);
+  opacity: 0.9;
+}
+
+.cat-nose {
+  fill: #e2808f;
+}
+
+.cat-nose-glint {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+
+.cat-whisker path {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+/* 기분 좋을 때만 숨을 쉬어요. */
+.cat.is-happy,
+.cat.is-neutral {
+  animation: cat-breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes cat-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.012);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat,
+  .cat-body,
+  .cat-belly,
+  .cat-ear,
+  .cat-ear-inner,
+  .cat-tail,
+  .cat-shadow,
+  .cat-eye-white,
+  .cat-iris,
+  .cat-pupil,
+  .cat-lid ellipse {
+    animation: none;
+    transition: none;
+  }
+}
