@@ -79,6 +79,9 @@ export function HomePage() {
         {/*
           광고가 준비됐을 때만 보여줘요. 눌렀는데 아무 일도 안 나는 버튼은
           없느니만 못해요. 보상은 광고를 끝까지 본 경우에만 지급돼요.
+
+          버튼 문구에 "광고"를 직접 적어서, 누르기 전에 광고가 나온다는 걸
+          알 수 있게 해요. 예고 없이 광고가 튀어나오면 안 된다는 정책 때문이에요.
         */}
         {treatAd.ready && (
           <button
@@ -90,8 +93,8 @@ export function HomePage() {
             {treatAd.watching
               ? "간식 주는 중…"
               : hasUnheardTreat(state.seenLineIds)
-                ? "🍗 간식 주고 새 말 듣기"
-                : "🍗 간식 주기"}
+                ? "📺 광고 보고 간식 주고 새 말 듣기"
+                : "📺 광고 보고 간식 주기"}
           </button>
         )}
       </div>
